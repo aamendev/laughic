@@ -1,0 +1,19 @@
+utils
+{
+    clamp;
+    pulse;
+    spline;
+    smooth_step;
+    parametric_derivative;
+    derivative;
+    cross;
+    dot;
+    normalize;
+}
+
+struct
+{
+    color;
+    point;
+}
+

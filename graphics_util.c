@@ -50,3 +50,48 @@ void resize(Texture* src, u32 wn, u32 hn, u32** dst)
         }
     }
 }
+
+void mandelbrot(Canvas* canvas, u16 iterations, u32 base_colour)
+{
+    //z_n+1 = zn^2 + c
+    for (int i = 0; i < canvas->width * canvas->height; i++)
+    {
+        float x0 = 2.47 * (i % (canvas->width)) / canvas->width - 2;
+        float y0 = 2.24 * (i / (canvas->width)) / canvas->height - 1.12;
+        float currentX = 0;
+        float currentY = 0;
+        const float bound  = 4;
+        int iter = 0;
+        (void)x0;
+        (void)y0;
+        while (iter < iterations && currentX * currentX + currentY * currentY < bound)
+        {
+            float tempx = currentX * currentX - currentY * currentY;
+            currentY = 2 * currentX * currentY + y0;
+            currentX = tempx + x0;
+            iter++;
+        }
+        mix_colour(&canvas->pixels[i] , (1 - (float)iter / iterations) *  base_colour);
+    }
+}
+
+void julia(Canvas* canvas, u16 iterations, u32 base_colour, float zx, float zy)
+{
+    //z_n+1 = zn^2 + c
+    const float r = 2; 
+    for (int i = 0; i < canvas->width * canvas->height; i++)
+    {
+
+        float x0 = 2 * r * (i % (canvas->width)) / canvas->width - r;
+        float y0 = 2 * r * (i / (canvas->width)) / canvas->height - r; 
+        int iter = 0;
+        while (iter < iterations && x0 * x0 + y0 * y0 < r * r)
+        {
+            float tempx = x0 * x0 - y0 * y0;
+            y0 = 2 * x0 * y0 + zy;
+            x0 = tempx + zx;
+            iter++;
+        }
+        mix_colour(&canvas->pixels[i] , (1 - (float)iter / iterations) *  base_colour);
+    }
+}
