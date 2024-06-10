@@ -4,4 +4,4 @@ Some graphics algorithms to draw circles, ellipses, rectangles, lines, triangles
 
 ## showcase
 
-![showcase img](./imgs/pic.jpg)
+![showcase img](./imgs/showcase.jpg)
