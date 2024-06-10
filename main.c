@@ -128,7 +128,7 @@ int save(Canvas* canvas, Format format)
         break;
         case JPG:
         {
-            return stbi_write_jpg("./imgs/pic.jpg", canvas->width, canvas->height, 4, canvas->pixels, WIDTH * 4);
+            return stbi_write_jpg("./imgs/showcase.jpg", canvas->width, canvas->height, 4, canvas->pixels, WIDTH * 4);
         }
         default:
             return -1;
@@ -214,8 +214,8 @@ int main()
     u32 pixels[WIDTH * HEIGHT];
     Canvas canvas = { pixels, WIDTH, HEIGHT };
     fill(&canvas, 0XFF000000);
-    //showcase(&canvas);
-    mandelbrot(&canvas, 1000, 0x77423ab5);
-    julia(&canvas, 1000, 0xaf423ab5, -0.7269, 0.1889);
+    showcase(&canvas);
+ //   mandelbrot(&canvas, 1000, 0x77423ab5);
+    //julia(&canvas, 1000, 0xaf423ab5, -0.7269, 0.1889);
     save(&canvas, JPG);
 }
