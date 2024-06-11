@@ -117,24 +117,23 @@ void draw(Canvas* canvas, u32 colour, void* data, u32 count, u32 stride, DrawMod
 }
 
 
-int save(Canvas* canvas, Format format)
+int save(Canvas* canvas, Format format, char* dst)
 {
     switch (format)
     {
         case PNG:
         {
-            return stbi_write_png("./imgs/pic.png", canvas->width, canvas->height, 4, canvas->pixels, WIDTH * 4);
+            return stbi_write_png(dst, canvas->width, canvas->height, 4, canvas->pixels, WIDTH * 4);
         }
         break;
         case JPG:
         {
-            return stbi_write_jpg("./imgs/showcase.jpg", canvas->width, canvas->height, 4, canvas->pixels, WIDTH * 4);
+            return stbi_write_jpg(dst, canvas->width, canvas->height, 4, canvas->pixels, WIDTH * 4);
         }
         default:
             return -1;
     }
 }
-
 void showcase(Canvas* canvas)
 {
 
@@ -217,5 +216,5 @@ int main()
     showcase(&canvas);
  //   mandelbrot(&canvas, 1000, 0x77423ab5);
     //julia(&canvas, 1000, 0xaf423ab5, -0.7269, 0.1889);
-    save(&canvas, JPG);
+    save(&canvas, JPG, "./imgs/showcase");
 }
