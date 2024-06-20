@@ -1,4 +1,5 @@
 #include "types.h"
+#include <math.h>
 #include <stdio.h>
 #include "./graphics_util.h"
 
@@ -51,7 +52,7 @@ void resize(Texture* src, u32 wn, u32 hn, u32** dst)
     }
 }
 
-void mandelbrot(Canvas* canvas, u16 iterations, u32 base_colour)
+void mandelbrot(Canvas* canvas, u16 iterations)
 {
     //z_n+1 = zn^2 + c
     for (int i = 0; i < canvas->width * canvas->height; i++)
@@ -71,13 +72,15 @@ void mandelbrot(Canvas* canvas, u16 iterations, u32 base_colour)
             currentX = tempx + x0;
             iter++;
         }
+        u32 base_colour = 0xff000000;
         mix_colour(&canvas->pixels[i] , (1 - (float)iter / iterations) *  base_colour);
     }
 }
 
-void julia(Canvas* canvas, u16 iterations, u32 base_colour, float zx, float zy)
+void julia(Canvas* canvas, u16 iterations, float zx, float zy)
 {
     //z_n+1 = zn^2 + c
+    float shift = 1.5 * 3.1415;
     const float r = 2; 
     for (int i = 0; i < canvas->width * canvas->height; i++)
     {
@@ -92,6 +95,16 @@ void julia(Canvas* canvas, u16 iterations, u32 base_colour, float zx, float zy)
             x0 = tempx + zx;
             iter++;
         }
-        mix_colour(&canvas->pixels[i] , (1 - (float)iter / iterations) *  base_colour);
+    u32 base_colour = 0xff000000;
+    u8 comp[4] = {0,0,0,0};
+    float freq[3] = {0.018, 0.018, 0.019};
+    float phase[3] = {0.0, 0.0, 0.0};
+    float continousFactor = iter + 1 - 1 /(zx * zx + zy * zy);
+    for (int i = 0; i < 3; i++)
+    {
+        comp[i] = (0.5 * sin(freq[i] * continousFactor + phase[i] + shift) + 0.5) * 255;
+        base_colour |= (comp[i]<<8*i);
+    }
+        mix_colour(&canvas->pixels[i], base_colour);
     }
 }

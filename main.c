@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include <errno.h>
+//#include <errno.h>
 #include <stdint.h>
 #include <string.h>
 #include "./stb_image.h"
@@ -207,14 +207,16 @@ void showcase(Canvas* canvas)
         free(textures[i].data);
     }
 }
-
+#define BG 0xff382209
+#define WHITE 0xffffffff
+#define BLACK 0xff000000
 int main()
 {
     u32 pixels[WIDTH * HEIGHT];
     Canvas canvas = { pixels, WIDTH, HEIGHT };
-    fill(&canvas, 0xff382209);
-    showcase(&canvas);
- //   mandelbrot(&canvas, 1000, 0x77423ab5);
-    //julia(&canvas, 1000, 0xaf423ab5, -0.7269, 0.1889);
-    save(&canvas, JPG, "./imgs/showcase");
+    fill(&canvas, BLACK);
+//    showcase(&canvas);
+    //mandelbrot(&canvas, 1000);
+    julia(&canvas, 1000, 0.285, 0.01);
+    save(&canvas, JPG, "./imgs/julia_p0285_p001");
 }
