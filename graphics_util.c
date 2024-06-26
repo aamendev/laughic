@@ -108,3 +108,84 @@ void julia(Canvas* canvas, u16 iterations, float zx, float zy)
         mix_colour(&canvas->pixels[i], base_colour);
     }
 }
+
+void newton(Canvas* canvas, u16 iterations)
+{
+    //z = z^3 - 1
+    u32 base_colour = 0xff000000;
+    float roots[6] = {1, 0, -0.5f, sqrt(3) / 2, -0.5, - sqrt(3) / 2};
+    for (int i = 0; i < canvas->width * canvas-> height; i++)
+    {
+        float x0 = 4.0f * (i % (canvas->width)) / canvas->width - 2;
+        float y0 = 4.0f * ((i / canvas->width)) / canvas->width - 2;
+        int iter = 0;
+        while (iter < iterations)
+        {
+            //z^2 = x^2 - y^2 +2xyi
+            float derix = 3 * (x0 * x0 - y0 * y0);
+            float deriy = 3 * 2 * x0 * y0;
+            // z -= z ^ 3 - 1 / deri
+            //z ^ 3 =(x + yi) ^ 3 = x^3 + 3x^2yi  - 3xy^2 - y^3i 
+            float z3x = x0 * x0 * x0 - 3 * x0 * y0 * y0 - 1;
+            float z3y = 3 * x0 * x0 * y0 - y0 * y0 * y0;
+
+            x0 -= (z3x * derix + deriy * z3y) / (derix * derix + deriy * deriy);
+            y0 -= (z3y * derix - deriy * z3x) / (derix * derix + deriy * deriy);
+
+            float tol = 0.000001f;
+            for (int i = 0; i < 3; i++)
+            {
+                float difx = x0 - roots[2 * i];
+                float dify = y0 - roots[2 * i + 1];
+                difx = difx * ((difx > 0) - !(difx > 0));
+                dify = dify * ((dify > 0) - !(dify > 0));
+                if (difx < tol && dify < tol)
+                {
+                    goto process;
+                }
+            }
+            iter++;
+        }
+process:
+        mix_colour(&canvas->pixels[i] , (1 - (float)iter / iterations) *  base_colour);
+    }
+}
+void newton2(Canvas *canvas, u16 iterations, void (*func)(float, float, float *, float *), void (*deri)(float, float, float *, float *), float* roots, u16 nRoots)
+ {
+    u32 base_colour = 0xff000000;
+    float derix = 0.0f;
+    float deriy = 0.0f;
+    float zx = 0.0f;
+    float zy = 0.0f;
+
+    for (int i = 0; i < canvas->width * canvas-> height; i++)
+    {
+        float x0 = 4.0f * (i % (canvas->width)) / canvas->width - 2;
+        float y0 = 4.0f * ((i / canvas->width)) / canvas->width - 2;
+        int iter = 0;
+        while (iter < iterations)
+        {
+            func(x0, y0, &zx, &zy);
+            deri(x0, y0, &derix, &deriy);
+
+            x0 -= (zx * derix + deriy * zy) / (derix * derix + deriy * deriy);
+            y0 -= (zy * derix - deriy * zx) / (derix * derix + deriy * deriy);
+
+            float tol = 0.000001f;
+            for (int i = 0; i < nRoots; i++)
+            {
+                float difx = x0 - roots[2 * i];
+                float dify = y0 - roots[2 * i + 1];
+                difx = difx * ((difx > 0) - !(difx > 0));
+                dify = dify * ((dify > 0) - !(dify > 0));
+                if (difx < tol && dify < tol)
+                {
+                    goto process;
+                }
+            }
+            iter++;
+        }
+process:
+        mix_colour(&canvas->pixels[i] , (1 - (float)iter / iterations) *  base_colour);
+    }
+}

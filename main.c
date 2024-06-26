@@ -5,7 +5,8 @@
 #include "./stb_image.h"
 #include "./stb_image_write.h"
 #include "./shapes.h"
-
+#include "./newton_fractals.h"
+#include <math.h>
 #define WIDTH 800
 #define HEIGHT 800
 
@@ -215,8 +216,5 @@ int main()
     u32 pixels[WIDTH * HEIGHT];
     Canvas canvas = { pixels, WIDTH, HEIGHT };
     fill(&canvas, BLACK);
-//    showcase(&canvas);
-    //mandelbrot(&canvas, 1000);
-    julia(&canvas, 1000, 0.285, 0.01);
-    save(&canvas, JPG, "./imgs/julia_p0285_p001");
+    save(&canvas, JPG, "");
 }

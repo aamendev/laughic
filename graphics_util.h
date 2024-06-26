@@ -38,4 +38,6 @@ void julia(Canvas* canvas, u16 iterations, float zx, float zy);
 //float randgradient(int x0, int y0, float* x, float* y);
 //float dotGridGrading(int x0, int y0, float x, float y);
 //float perlin(float x, float y)
+void newton(Canvas* canvas, u16 iterations);
+void newton2(Canvas* cavnas, u16 iterations, void (*func)(float, float, float*, float*), void (*deri)(float, float, float*, float*), float* roots, u16 nRoots);
 #endif
