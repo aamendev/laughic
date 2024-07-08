@@ -10,6 +10,10 @@
 #define WIDTH 800
 #define HEIGHT 800
 
+#define BG 0xff382209
+#define WHITE 0xffffffff
+#define BLACK 0xff000000
+
 typedef enum
 {
     POINT,
@@ -29,6 +33,8 @@ typedef enum
     COLOUR_MODE
 } ColourMode;
 
+u32 pixels[WIDTH * HEIGHT];
+Canvas canvas = { pixels, WIDTH, HEIGHT };
 void read_texture(Texture* tex)
 {
     int w, h, channels;
@@ -177,9 +183,7 @@ void showcase(Canvas* canvas)
            data[2], data[3],
            data[2 + 4], data[3 + 4],
            data[2 + 8], data[3 + 8]);
-
-   fill_triangle_texture(
-           canvas,
+fill_triangle_texture( canvas,
            data[0], data[1],
            data[0 + 4 * 3], data[1 + 4 * 3],
            data[0 + 4 * 4], data[1 + 4 * 4],
@@ -208,13 +212,36 @@ void showcase(Canvas* canvas)
         free(textures[i].data);
     }
 }
-#define BG 0xff382209
-#define WHITE 0xffffffff
-#define BLACK 0xff000000
+void fractal_showcase(Canvas* canvas)
+{
+    Texture fractalTexture = {"", NULL, 200, 200};
+    fractalTexture.data = calloc(sizeof(u32), 200 * 200);
+    Canvas fractalCanvas = {fractalTexture.data, 200, 200};
+
+    fill(&fractalCanvas, BG);
+    julia(&fractalCanvas, 100, -0.79, 0.1889, BG);
+    fill_rect_texture(canvas, 50, 50, 200, 200, &fractalTexture);
+
+    fill(&fractalCanvas, BG);
+    mandelbrot(&fractalCanvas, 100, BG*2);
+    fill_rect_texture(canvas, 300, 50, 200, 200, &fractalTexture);
+
+    fill(&fractalCanvas, BG);
+    newton(&fractalCanvas, 100, BG);
+    fill_rect_texture(canvas, 550, 50, 200, 200, &fractalTexture);
+
+    float roots[8] = {1, 0, -1, 0, 0, 1, 0, -1};
+    u32 nRoots = 4;
+    fill(&fractalCanvas, BG);
+    newton2(&fractalCanvas, 100, func_z4_n1, deri_z4_n1, roots, nRoots);
+    fill_rect_texture(canvas, 50, 300, 200, 200, &fractalTexture);
+
+    free(fractalTexture.data);
+}
+
 int main()
 {
-    u32 pixels[WIDTH * HEIGHT];
-    Canvas canvas = { pixels, WIDTH, HEIGHT };
-    fill(&canvas, BLACK);
-    save(&canvas, JPG, "");
+    fill(&canvas, BG);
+    fractal_showcase(&canvas);
+    save(&canvas, JPG, "./imgs/fractal_showcase");
 }

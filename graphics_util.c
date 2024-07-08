@@ -52,7 +52,7 @@ void resize(Texture* src, u32 wn, u32 hn, u32** dst)
     }
 }
 
-void mandelbrot(Canvas* canvas, u16 iterations)
+void mandelbrot(Canvas* canvas, u16 iterations, u32 base_colour)
 {
     //z_n+1 = zn^2 + c
     for (int i = 0; i < canvas->width * canvas->height; i++)
@@ -72,16 +72,15 @@ void mandelbrot(Canvas* canvas, u16 iterations)
             currentX = tempx + x0;
             iter++;
         }
-        u32 base_colour = 0xff000000;
         mix_colour(&canvas->pixels[i] , (1 - (float)iter / iterations) *  base_colour);
     }
 }
 
-void julia(Canvas* canvas, u16 iterations, float zx, float zy)
+void julia(Canvas* canvas, u16 iterations, float zx, float zy, u32 base_colour)
 {
     //z_n+1 = zn^2 + c
     float shift = 1.5 * 3.1415;
-    const float r = 2; 
+    const float r = 1.7; 
     for (int i = 0; i < canvas->width * canvas->height; i++)
     {
 
@@ -95,11 +94,11 @@ void julia(Canvas* canvas, u16 iterations, float zx, float zy)
             x0 = tempx + zx;
             iter++;
         }
-    u32 base_colour = 0xff000000;
     u8 comp[4] = {0,0,0,0};
-    float freq[3] = {0.018, 0.018, 0.019};
+    float freq[3] = {0.03, 0.018, 0.019};
     float phase[3] = {0.0, 0.0, 0.0};
     float continousFactor = iter + 1 - 1 /(zx * zx + zy * zy);
+    base_colour = 0xff000000;
     for (int i = 0; i < 3; i++)
     {
         comp[i] = (0.5 * sin(freq[i] * continousFactor + phase[i] + shift) + 0.5) * 255;
@@ -109,10 +108,9 @@ void julia(Canvas* canvas, u16 iterations, float zx, float zy)
     }
 }
 
-void newton(Canvas* canvas, u16 iterations)
+void newton(Canvas* canvas, u16 iterations, u32 base_colour)
 {
     //z = z^3 - 1
-    u32 base_colour = 0xff000000;
     float roots[6] = {1, 0, -0.5f, sqrt(3) / 2, -0.5, - sqrt(3) / 2};
     for (int i = 0; i < canvas->width * canvas-> height; i++)
     {
