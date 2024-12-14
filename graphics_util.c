@@ -11,6 +11,14 @@ void unpack(u8* comp, u32* c)
         comp[3] = (*c >> (8 * 3)) & 0xFF;
 }
 
+void pack(u8* comp, u32* c)
+{
+    for (int i = 0; i < 4; i++)
+    {
+        *c |= comp[i]<<(8 * i);
+    }
+}
+
 void mix_component(u8* c1, u8 c2, u8 a)
 {
     *c1 =  *c1 + (c2 - *c1) * a / 255;
@@ -40,6 +48,22 @@ u32 complement(u32 colour)
     return c;
 }
 
+u32 weighted_sum(u32* cols, float* means, u32 count)
+{
+    u32 current = 0;
+    u8 comps[4] = {0, 0, 0, 0};
+    u8 out[4] = {0, 0 , 0 , 0};
+    float sum = 0;
+    for (u32 i = 0; i < count; i++)
+    {
+        unpack(comps, &cols[i]);
+        for (int j = 0; j < 4; j++)
+            out[j] += (comps[j] * means[i]);
+        sum += means[i];
+    }
+    pack(out, &current);
+    return current;
+}
 void resize(Texture* src, u32 wn, u32 hn, u32** dst)
 {
     *dst = (u32*)malloc(wn * hn * sizeof(u32));

@@ -1,4 +1,6 @@
 #include "./logic_util.h"
+#include <stdlib.h>
+#include <time.h>
 void swap(int* a, int* b)
 {
     int temp = *a;
@@ -56,4 +58,10 @@ void bary(int x0, int y0, int x1, int y1, int x2, int y2, int x, int y, float* b
     bary[0] = lambda1;
     bary[1] = lambda2;
     bary[2] = 1 - lambda1 - lambda2;
+}
+
+float rand_float()
+{
+    srand(time(NULL));
+    return (float)rand() / RAND_MAX;
 }

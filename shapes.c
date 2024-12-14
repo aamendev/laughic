@@ -581,3 +581,15 @@ void fill_triangle_texture(Canvas* canvas, int x0, int y0, int x1, int y1, int x
                 tex->data[((v * tex->height) / 1001 * tex->width) + (u * tex->width) / 1001]);
     }
 }
+
+/*void fill(Canvas* canvas, Shape type, void* shape)
+{
+    switch(shape)
+    {
+        case LINE:
+            {
+            line(canvas, )
+            }
+    }
+}
+*/

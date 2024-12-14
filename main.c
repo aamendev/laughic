@@ -6,20 +6,27 @@
 #include "./stb_image_write.h"
 #include "./shapes.h"
 #include "./newton_fractals.h"
-#include <math.h>
+#include "logic_util.h"
+#include "math/ray.h"
+#include "math/sphere.h"
+#include "math/traceable.h"
+#include "math/vector3d.h"
+#include "managers/scene.h"
 #define WIDTH 800
 #define HEIGHT 800
 
 #define BG 0xff382209
 #define WHITE 0xffffffff
 #define BLACK 0xff000000
+#define CYAN 0xffffff00
+#define MAGENTA 0xffff00ff
 
 typedef enum
 {
     POINT,
     LINE_LIST,
     LINE_STRIP,
-    TRIANGLE,
+    TRIANGLE_DRAW,
     TRIANGLE_STRIP,
     TRIANGLE_FAN,
     DRAW_MODE
@@ -69,8 +76,7 @@ void draw(Canvas* canvas, u32 colour, void* data, u32 count, u32 stride, DrawMod
                         }
                         break;
                     case LINE_LIST:
-                        {
-                            u32* data2 = data;
+                        { u32* data2 = data;
                             for (int i = 0; i < (count - 2) * stride + 1; i += stride * 2)
                             {
                                 line(canvas, data2[i], data2[i + 1], data2[i + 2], data2[i + 3], colour);
@@ -86,7 +92,7 @@ void draw(Canvas* canvas, u32 colour, void* data, u32 count, u32 stride, DrawMod
                             }
                         }
                         break;
-                    case TRIANGLE:
+                    case TRIANGLE_DRAW:
                         {
                             u32* data2 = data;
                             for (int i = 0; i < (count - 3) * stride + 1; i += stride * 3)
@@ -239,9 +245,40 @@ void fractal_showcase(Canvas* canvas)
     free(fractalTexture.data);
 }
 
+void raytrace(Canvas* canvas)
+{
+    Vector3d rayDirection = {.x = 0, .y = 0, .z = -1};
+    Vector3d initPosition = {.x = 0, .y = 0, .z = 100};
+    Ray r = {.direction = rayDirection, .base = initPosition};
+    Vector3d spherePos = {.x = 0, .y = 0, .z = 0};
+    Vector3d sphere2Pos = {.x = -20, .y = 30, .z = 0};
+    Sphere s = {
+        .data = {.center = spherePos, .r = 85.0f}};
+    Sphere s2 = {.data = {.center =  sphere2Pos, .r = 100.0f}};
+
+    Traceable t1 = {.data = &(s.data), .col = CYAN, .intersects = sphere_intersects};
+    Traceable t2 = {.data = &(s2.data), .col = MAGENTA, .intersects = sphere_intersects};
+    
+    Traceable* traceables[2] = {&t1, &t2};
+    SceneData scene_data = {
+        .canvas = canvas, 
+        .default_colour = BG,
+        .samples = 4,
+        .pixelSize = 1,
+        .ray = &r,
+        .traceables = &traceables[0], 
+        .traceable_count = 2};
+
+    Scene scene = {
+        .scene_data = &scene_data,
+        .ray_trace = simple_tracer
+    };
+    scene.ray_trace(&scene_data);
+}
+
 int main()
 {
     fill(&canvas, BG);
-    fractal_showcase(&canvas);
-    save(&canvas, JPG, "./imgs/fractal_showcase");
+    raytrace(&canvas);
+    save(&canvas, JPG, "./imgs/raytrace");
 }
