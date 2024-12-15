@@ -4,19 +4,19 @@
 #include "ray.h"
 #include "traceable.h"
 
-typedef struct SphereData
+typedef struct Sphere
 {
     float r;
     Vector3d center;
-} SphereData;
-
-typedef struct Sphere
-{
-    Traceable* traceable;
-    
-    SphereData data;
 } Sphere;
 
 int sphere_intersects(Ray* r, void* data);
+
+#define SPHERE_TRACE(s, c) ((Traceable)\
+        {\
+        .data = &s,\
+        .col = c,\
+        .intersects = sphere_intersects\
+        })
 
 #endif

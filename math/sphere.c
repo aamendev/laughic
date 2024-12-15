@@ -14,8 +14,8 @@
 
 int sphere_intersects(Ray *r, void *data)
 {
-    float rad = ((SphereData*)data)->r;
-    Vector3d center = ((SphereData*)data)->center;
+    float rad = ((Sphere*)data)->r;
+    Vector3d center = ((Sphere*)data)->center;
 
     Vector3d base_center = sub(&(center), &(r->base));
     if (dot(&base_center, &(r->direction)) < 0 &&

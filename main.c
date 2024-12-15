@@ -12,6 +12,8 @@
 #include "math/traceable.h"
 #include "math/vector3d.h"
 #include "managers/scene.h"
+#include "samplers/jittered.h"
+#include "samplers/sampler.h"
 #define WIDTH 800
 #define HEIGHT 800
 
@@ -250,20 +252,32 @@ void raytrace(Canvas* canvas)
     Vector3d rayDirection = {.x = 0, .y = 0, .z = -1};
     Vector3d initPosition = {.x = 0, .y = 0, .z = 100};
     Ray r = {.direction = rayDirection, .base = initPosition};
-    Vector3d spherePos = {.x = 0, .y = 0, .z = 0};
-    Vector3d sphere2Pos = {.x = -20, .y = 30, .z = 0};
-    Sphere s = {
-        .data = {.center = spherePos, .r = 85.0f}};
-    Sphere s2 = {.data = {.center =  sphere2Pos, .r = 100.0f}};
 
-    Traceable t1 = {.data = &(s.data), .col = CYAN, .intersects = sphere_intersects};
-    Traceable t2 = {.data = &(s2.data), .col = MAGENTA, .intersects = sphere_intersects};
-    
+    Vector3d spherePos = {.x = 0, .y = 0, .z = 0};
+    Sphere s = {
+        .center = spherePos, .r = 85.0f};
+
+    Vector3d sphere2Pos = {.x = -20, .y = 30, .z = 0};
+    Sphere s2 = {.center =  sphere2Pos, .r = 100.0f};
+
+    Traceable t1 = SPHERE_TRACE(s, CYAN);
+    Traceable t2 = SPHERE_TRACE(s2, MAGENTA);
     Traceable* traceables[2] = {&t1, &t2};
+
+    SamplerData data = (SamplerData){
+        .sample_count = 4,
+        .set_count = 4,
+        .used_count = 0,
+        .init_index = 0,
+        .samples = NULL,
+        .shuffled_indices = NULL
+    };
+
+    Sampler jittered = JITTERED_SAMPLER(data);
     SceneData scene_data = {
         .canvas = canvas, 
-        .default_colour = BG,
-        .samples = 4,
+        .default_colour = BLACK,
+        .sampler = &jittered,
         .pixelSize = 1,
         .ray = &r,
         .traceables = &traceables[0], 
@@ -271,8 +285,9 @@ void raytrace(Canvas* canvas)
 
     Scene scene = {
         .scene_data = &scene_data,
-        .ray_trace = simple_tracer
+        .ray_trace = perspective_tracer
     };
+
     scene.ray_trace(&scene_data);
 }
 
@@ -280,5 +295,5 @@ int main()
 {
     fill(&canvas, BG);
     raytrace(&canvas);
-    save(&canvas, JPG, "./imgs/raytrace");
+    save(&canvas, JPG, "./imgs/pers_raytrace");
 }

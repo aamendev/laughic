@@ -5,12 +5,13 @@
 #include "../graphics_util.h"
 #include "../logic_util.h"
 #include "../shapes.h"
+#include "../samplers/sampler.h"
 typedef struct SceneData
 {
     Canvas* canvas;
+    Sampler* sampler;
     u32 default_colour;
     Ray* ray;
-    int samples;
     float pixelSize;
     Traceable** traceables;    
     int traceable_count;
@@ -23,4 +24,5 @@ typedef struct Scene
 } Scene;
 
 void simple_tracer(SceneData* scene);
+void perspective_tracer(SceneData* scene);
 #endif

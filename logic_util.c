@@ -65,3 +65,9 @@ float rand_float()
     srand(time(NULL));
     return (float)rand() / RAND_MAX;
 }
+
+int rand_int()
+{
+    srand(time(NULL));
+    return rand();
+}
