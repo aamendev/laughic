@@ -6,6 +6,10 @@
 #include "./stb_image_write.h"
 #include "./shapes.h"
 #include "./newton_fractals.h"
+#include "cameras/camera.h"
+#include "cameras/fish_eye.h"
+#include "cameras/pinhole.h"
+#include "cameras/spherical.h"
 #include "logic_util.h"
 #include "math/ray.h"
 #include "math/sphere.h"
@@ -253,12 +257,8 @@ void raytrace(Canvas* canvas)
     Vector3d initPosition = {.x = 0, .y = 0, .z = 100};
     Ray r = {.direction = rayDirection, .base = initPosition};
 
-    Vector3d spherePos = {.x = 0, .y = 0, .z = 0};
-    Sphere s = {
-        .center = spherePos, .r = 85.0f};
-
-    Vector3d sphere2Pos = {.x = -20, .y = 30, .z = 0};
-    Sphere s2 = {.center =  sphere2Pos, .r = 100.0f};
+    Sphere s = {.center = {.x = 0, .y = 0, .z = 0}, .r = 85.0f};
+    Sphere s2 = {.center =  {.x = -20, .y = 20, .z = 0}, .r = 100.0f};
 
     Traceable t1 = SPHERE_TRACE(s, CYAN);
     Traceable t2 = SPHERE_TRACE(s2, MAGENTA);
@@ -273,6 +273,42 @@ void raytrace(Canvas* canvas)
         .shuffled_indices = NULL
     };
 
+    PinholeData p_data = {.d = 100.0};
+
+    FishEyeData f_data = 
+    {
+        .height = canvas->height,
+        .width = canvas->width,
+        .pixel_size = 1,
+        .max_psi = 360
+    };
+
+    SphericalData s_data = 
+    {
+        .height = canvas->height,
+        .width = canvas->width,
+        .pixel_size = 1,
+        .max_lambda = 360,
+        .max_psi = 180
+    };
+
+    CameraData cam_data = (CameraData)
+    {
+        .eye = {.x =  100, .y =  110, .z = 130},
+        .look_at = {.x = 0, .y = 0, .z = -20},
+        .up = {.x = 1.2, .y = 1, .z = 0},
+        .extra = &s_data,
+    };
+    printf("%f", *(float*)cam_data.extra);
+
+    Camera pinhole_cam = PINHOLE(cam_data);
+    Camera fisheye_cam = FISH_EYE(cam_data);
+    Camera sherical_cam = SPHERICAL_CAM(cam_data);
+    (void)p_data;
+    (void)pinhole_cam;
+    (void)f_data;
+    (void)fisheye_cam;
+
     Sampler jittered = JITTERED_SAMPLER(data);
     SceneData scene_data = {
         .canvas = canvas, 
@@ -281,7 +317,9 @@ void raytrace(Canvas* canvas)
         .pixelSize = 1,
         .ray = &r,
         .traceables = &traceables[0], 
-        .traceable_count = 2};
+        .traceable_count = 2,
+        .cam = &sherical_cam
+    };
 
     Scene scene = {
         .scene_data = &scene_data,

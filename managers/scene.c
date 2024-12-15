@@ -1,4 +1,5 @@
 #include "./scene.h"
+#include <stdio.h>
 
 void simple_tracer(SceneData* scene)
 {
@@ -58,7 +59,6 @@ void simple_tracer(SceneData* scene)
 void perspective_tracer(SceneData *scene)
 {
     scene->sampler->generate_samples(scene->sampler->data);
-    float x, y;
     float* means = malloc((scene->traceable_count + 1) * sizeof(float));
     u32* cols = malloc((scene->traceable_count + 1) * sizeof(u32));
 
@@ -67,13 +67,9 @@ void perspective_tracer(SceneData *scene)
         cols[i] = scene->traceables[i]->col;
     }
     cols[scene->traceable_count] = scene->default_colour;
+    Point2D pp;
 
-    scene->ray->base = (Vector3d)
-    {
-        .x = 20,
-        .y = 0,
-        .z = 130
-    };
+    scene->ray->base = scene->cam->data->eye;
     int samples = scene->sampler->data->sample_count;
 
     for (int j = 0; j < scene->canvas->height; j++)
@@ -85,14 +81,12 @@ void perspective_tracer(SceneData *scene)
             for (int k = 0; k < samples * samples; k++)
             {
                 Point2D next_sample = scene->sampler->get_next(scene->sampler->data);
-                x = scene->pixelSize * 
+                pp.x = scene->pixelSize * 
                     (i - 0.5 * (scene->canvas->width - 1) + next_sample.x);
-                y = scene->pixelSize * 
+                pp.y = scene->pixelSize * 
                     (j - 0.5 * (scene->canvas->height - 1) + next_sample.y);
-                scene->ray->direction.x = x;
-                scene->ray->direction.y = y;
-                scene->ray->direction.z = -30;
-                scene->ray->direction = normalise(&scene->ray->direction);
+                scene->ray->direction =
+                    scene->cam->ray_direction(scene->cam->data, &pp);
                 for (int i = 0; i < scene->traceable_count; i++)
                 {
                     if (scene->traceables[i]->intersects

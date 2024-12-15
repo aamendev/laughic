@@ -6,6 +6,7 @@
 #include "../logic_util.h"
 #include "../shapes.h"
 #include "../samplers/sampler.h"
+#include "../cameras/camera.h"
 typedef struct SceneData
 {
     Canvas* canvas;
@@ -15,6 +16,7 @@ typedef struct SceneData
     float pixelSize;
     Traceable** traceables;    
     int traceable_count;
+    Camera* cam;
 } SceneData;
 
 typedef struct Scene

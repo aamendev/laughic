@@ -60,5 +60,5 @@ float get_theta(Vector3d* v1, Vector3d* v2)
 }
 Vector3d normalise(Vector3d* v)
 {
-    return scale(v, magnitude(v));
+    return scale(v, 1 / magnitude(v));
 }
