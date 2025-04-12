@@ -220,17 +220,17 @@ void fill_circle(Canvas* canvas, int x, int y, int r, u32 colour)
 
     while (i > -j)
     {
-        for (int n = -i; n < i; n++)
+        for (int n = -i; n < i + 1; n++)
         {
             mix_colour(&canvas->pixels[(j + y) * canvas->width + n + x] , colour);
             mix_colour(&canvas->pixels[(y - j + 1) * canvas->width + n + x] , colour);
         }
-        for (int n = j; n < -j; n++)
+        for (int n = j; n < -(j - 1); n++)
         {
             if (oldi != i)
             {
-                mix_colour(&canvas->pixels[(i + y + 1) * canvas->width + n + x] , colour);
-                mix_colour(&canvas->pixels[(y - i) * canvas->width + n + x] , colour);
+                mix_colour(&canvas->pixels[(i + y) * canvas->width + n + x] , colour);
+                mix_colour(&canvas->pixels[(y - i + 1) * canvas->width + n + x] , colour);
             }
         }
 

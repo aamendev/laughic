@@ -2,6 +2,7 @@
 //#include <errno.h>
 #include <stdint.h>
 #include <string.h>
+#include <time.h>
 #include "./stb_image.h"
 #include "./stb_image_write.h"
 #include "./shapes.h"
@@ -11,11 +12,13 @@
 #include "cameras/pinhole.h"
 #include "cameras/spherical.h"
 #include "logic_util.h"
+#include "math/aabb.h"
 #include "math/ray.h"
 #include "math/sphere.h"
 #include "math/traceable.h"
 #include "math/vector3d.h"
 #include "managers/scene.h"
+#include "processing.h"
 #include "samplers/jittered.h"
 #include "samplers/sampler.h"
 #define WIDTH 800
@@ -26,6 +29,13 @@
 #define BLACK 0xff000000
 #define CYAN 0xffffff00
 #define MAGENTA 0xffff00ff
+#define YELLOW 0xff00ffff
+#define RED 0xff0000ff
+#define BLUE 0xffff0000
+#define GREEN 0xff00ff00
+#define PALE_BLUE 0xff800000
+#define PALE_RED 0xff000080
+#define PALE_GREEN 0xff008000
 
 typedef enum
 {
@@ -47,7 +57,7 @@ typedef enum
 } ColourMode;
 
 u32 pixels[WIDTH * HEIGHT];
-Canvas canvas = { pixels, WIDTH, HEIGHT };
+Canvas canvas = { BG, "default", pixels, WIDTH, HEIGHT };
 void read_texture(Texture* tex)
 {
     int w, h, channels;
@@ -59,6 +69,18 @@ void read_texture(Texture* tex)
     tex->data = colour;
     tex->width = w;
     tex->height = h;
+}
+void read_to_canvas(Canvas* c, char* path)
+{
+    int w, h, channels;
+    stbi_uc* data = stbi_load(path, &w, &h, &channels, STBI_rgb_alpha);
+    u32* colour = (u32*)malloc(w * h * sizeof(u32));
+    memcpy(colour, data, w * h * sizeof(u32));
+    stbi_image_free(data);
+
+    c->pixels = colour;
+    c->width = w;
+    c->height = h;
 }
 
 /* Unused in show case;
@@ -155,7 +177,6 @@ int save(Canvas* canvas, Format format, char* dst)
 }
 void showcase(Canvas* canvas)
 {
-
     Texture earth = {"./assets/8k_earth_daymap.jpg", NULL, 0, 0};
     Texture uranus = {"./assets/uranus.jpg", NULL, 0, 0};
     Texture cU = {"./assets/uranus.jpg", NULL, 0, 0};
@@ -228,7 +249,7 @@ void fractal_showcase(Canvas* canvas)
 {
     Texture fractalTexture = {"", NULL, 200, 200};
     fractalTexture.data = calloc(sizeof(u32), 200 * 200);
-    Canvas fractalCanvas = {fractalTexture.data, 200, 200};
+    Canvas fractalCanvas = {BG, "frac", fractalTexture.data, 200, 200};
 
     fill(&fractalCanvas, BG);
     julia(&fractalCanvas, 100, -0.79, 0.1889, BG);
@@ -259,10 +280,18 @@ void raytrace(Canvas* canvas)
 
     Sphere s = {.center = {.x = 0, .y = 0, .z = 0}, .r = 85.0f};
     Sphere s2 = {.center =  {.x = -20, .y = 20, .z = 0}, .r = 100.0f};
+    Sphere debug_sphere = {.center = {.x = -100, 0, 0}, .r = 10};
+    AABB box = 
+    {
+        .min_coord = {.x = 0, .y = 0, .z = 0}, 
+        .max_coord = {.x = 100, .y = 100, .z = 50}
+    };
 
     Traceable t1 = SPHERE_TRACE(s, CYAN);
     Traceable t2 = SPHERE_TRACE(s2, MAGENTA);
-    Traceable* traceables[2] = {&t1, &t2};
+    Traceable boxTrace = AABB_TRACE(box, YELLOW);
+    Traceable deb = SPHERE_TRACE(debug_sphere, RED);
+    Traceable* traceables[20] = {&deb, &boxTrace, &t1, &t2};
 
     SamplerData data = (SamplerData){
         .sample_count = 4,
@@ -288,16 +317,16 @@ void raytrace(Canvas* canvas)
         .height = canvas->height,
         .width = canvas->width,
         .pixel_size = 1,
-        .max_lambda = 360,
-        .max_psi = 180
+        .max_lambda = 90,
+        .max_psi = 90
     };
 
     CameraData cam_data = (CameraData)
     {
-        .eye = {.x =  100, .y =  110, .z = 130},
-        .look_at = {.x = 0, .y = 0, .z = -20},
-        .up = {.x = 1.2, .y = 1, .z = 0},
-        .extra = &s_data,
+        .eye = {.x =  0, .y = 100, .z = 130},
+        .look_at = {.x = 0, .y = 0, .z = 0},
+        .up = {.x = 0, .y = 1, .z = 0},
+        .extra = &p_data,
     };
     printf("%f", *(float*)cam_data.extra);
 
@@ -308,6 +337,8 @@ void raytrace(Canvas* canvas)
     (void)pinhole_cam;
     (void)f_data;
     (void)fisheye_cam;
+    (void)s_data;
+    (void)sherical_cam;
 
     Sampler jittered = JITTERED_SAMPLER(data);
     SceneData scene_data = {
@@ -317,8 +348,8 @@ void raytrace(Canvas* canvas)
         .pixelSize = 1,
         .ray = &r,
         .traceables = &traceables[0], 
-        .traceable_count = 2,
-        .cam = &sherical_cam
+        .traceable_count = 4,
+        .cam = &pinhole_cam
     };
 
     Scene scene = {
@@ -329,9 +360,204 @@ void raytrace(Canvas* canvas)
     scene.ray_trace(&scene_data);
 }
 
+u32 checkConcave(u32* points, u32 count)
+{
+    float oldCross = 0.0f;
+    for (int i = 0; i < 2*count; i+=2)
+    {
+        Vector3d firstSide = {points[i], points[i + 1], 0};
+        Vector3d secondSide = {points[(i+2) % (2*count)], points[(i + 3) % (2*count)], 0};
+        float crossValue = cross(&firstSide, &secondSide).z;
+
+        if (!(oldCross == 0.0f || oldCross * crossValue > 0))
+        {
+            return i + 2;
+        }
+        oldCross = crossValue;
+    }
+    return count;
+}
+
+void drawMulti(Canvas* canvas, u32* points, u32 size,  u32 count, u32 col, u32 offset)
+{
+    for (int i = 0; i < 2*count; i+=2)
+    {
+        u32 startInd = (i + offset) % (2 * size);
+        line(canvas, points[startInd], points[startInd + 1], 
+                points[(startInd+2) % (2*size)], points[(startInd+3) % (2 * size)], col);
+    }
+}
+void concaveCheckShowcase(Canvas* canvas)
+{
+    u32 centx = 300;
+    u32 centy = 300;
+    u32 offsetx = 100;
+    u32 offsety = 100;
+    #define SIZE (8)
+      u32 tri[SIZE] = 
+      {
+           centx - offsetx, centy,
+           centx + offsetx, centy,
+           centx + offsetx, centy - offsety,
+           centx - offsetx, centy - offsety,
+      };
+    u32 concavePoint = checkConcave(&tri[0], SIZE / 2);
+    u32 col = CYAN;
+
+    drawMulti(canvas, &tri[0], SIZE / 2, (concavePoint + 2) / 2, col, 0 );
+    col = MAGENTA;
+    drawMulti(canvas, &tri[0], SIZE / 2, (SIZE - concavePoint - 2) / 2, col, concavePoint);
+
+    centy = 400;
+      u32 tri2[SIZE] = 
+      {
+           centx - offsetx, centy,
+           centx, centy - offsety,
+           centx + offsetx, centy,
+           centx, centy - 2*offsety,
+      };
+    concavePoint = checkConcave(&tri2[0], SIZE / 2);
+    col = CYAN;
+
+    drawMulti(canvas, &tri2[0], SIZE / 2, (concavePoint + 2) / 2, col, 0);
+    col = MAGENTA;
+    drawMulti(canvas, &tri2[0], SIZE / 2, (SIZE - concavePoint) / 2, col, concavePoint);
+    
+}
+void circleShowCase(Canvas* c)
+{
+    fill_circle(c, WIDTH/2, HEIGHT/2, 20, MAGENTA);
+}
+
+void processing_showcase(Canvas* c)
+{
+    u32 r = 20;
+    fill(c, BG);
+    fill_circle(c, WIDTH/2, HEIGHT/2, r, RED);
+    fill_circle(c, WIDTH/2, HEIGHT/2 + 2*r, r, BLUE);
+    save(c, JPG, "./imgs/processing/org");
+    mult_contrast(c, 0.2); 
+    save(c, JPG, "./imgs/processing/contr");
+    mult_contrast(c, 1.0f/0.2);
+    save(c, JPG, "./imgs/processing/recontr");
+    inc_brightness(c, 10);
+    save(c, JPG, "./imgs/processing/firstInc");
+    inc_brightness(c, 30);
+    save(c, JPG, "./imgs/processing/secondInc");
+    inc_brightness(c, -40);
+    save(c, JPG, "./imgs/processing/restoreBright");
+    invert(c); 
+    save(c, JPG, "./imgs/processing/invert");
+    invert(c); 
+    save(c, JPG, "./imgs/processing/restoreInvert");
+    filter(c, ChannelBlue);
+    save(c, JPG, "./imgs/processing/blueFilter");
+    fill_circle(c, WIDTH/2, HEIGHT/2 + 2*r, r, BLUE);
+    filter(c, ChannelRed);
+    save(c, JPG, "./imgs/processing/redFilter");
+    fill_circle(c, WIDTH/2, HEIGHT/2, r, RED);
+    clamp_channel(c, ChannelBlue, 127, 255);
+    save(c, JPG, "./imgs/processing/changeMinBlue");
+    clamp_channel(c, ChannelRed, 127, 255);
+    save(c, JPG, "./imgs/processing/changeMinRed");
+
+    // Restore
+    fill(c, BG);
+    fill_circle(c, WIDTH/2, HEIGHT/2, r, PALE_RED);
+    fill_circle(c, WIDTH/2, HEIGHT/2 + 2*r, r, PALE_GREEN);
+    inc_channel(c, ChannelRed, 127);
+    save(c, JPG, "./imgs/processing/reddishStuff");
+    inc_channel(c, ChannelRed, -127);
+    inc_channel(c, ChannelBlue, 28);
+    save(c, JPG, "./imgs/processing/bluishStuff");
+
+    fill(c, BG);
+    fill_circle(c, WIDTH/2, HEIGHT/2, r, PALE_RED);
+    fill_circle(c, WIDTH/2, HEIGHT/2 + 2*r, r, PALE_GREEN);
+    grey_scale(c);
+    save(c, JPG, "./imgs/processing/grey_scale");
+}
+
+void filters_showcase(Canvas* c)
+{
+    u32 r = 20;
+    fill(c, BG);
+    fill_circle(c, WIDTH/2, HEIGHT/2, r, RED);
+    fill_circle(c, WIDTH/2, HEIGHT/2 + 2*r, r, BLUE);
+    save(c, JPG, "./imgs/filters/org");
+    i32 linear[3] = {1, 1, 1};
+    general_linear_separated_filter(c, linear, 3, linear, 3);
+    save(c, JPG, "./imgs/filters/linear_1");
+
+    fill(c, BG);
+    fill_circle(c, WIDTH/2, HEIGHT/2, r, RED);
+    fill_circle(c, WIDTH/2, HEIGHT/2 + 2*r, r, BLUE);
+    box_filter(c, 5);
+    save(c, JPG, "./imgs/filters/linear_2");
+
+    fill(c, BG);
+    fill_circle(c, WIDTH/2, HEIGHT/2, r, RED);
+    fill_circle(c, WIDTH/2, HEIGHT/2 + 2*r, r, BLUE);
+    binomial_filter(c, 1);
+    save(c, JPG, "./imgs/filters/binomial_1");
+
+    fill(c, BG);
+    fill_circle(c, WIDTH/2, HEIGHT/2, r, RED);
+    fill_circle(c, WIDTH/2, HEIGHT/2 + 2*r, r, BLUE);
+    binomial_filter(c, 3);
+    save(c, JPG, "./imgs/filters/binomial_2");
+
+    fill(c, BG);
+    fill_circle(c, WIDTH/2, HEIGHT/2, r, RED);
+    fill_circle(c, WIDTH/2, HEIGHT/2 + 2*r, r, BLUE);
+    min_filter(c, 3);
+    save(c, JPG, "./imgs/filters/min");
+
+    fill(c, BG);
+    fill_circle(c, WIDTH/2, HEIGHT/2, r, RED);
+    fill_circle(c, WIDTH/2, HEIGHT/2 + 2*r, r, BLUE);
+    max_filter(c, 3);
+    save(c, JPG, "./imgs/filters/max");
+
+    fill(c, BG);
+    fill_circle(c, WIDTH/2, HEIGHT/2, r, RED);
+    fill_circle(c, WIDTH/2, HEIGHT/2 + 2*r, r, BLUE);
+    jitter_filter(c, 10);
+    save(c, JPG, "./imgs/filters/jitter");
+
+    fill(c, BG);
+    fill_circle(c, WIDTH/2, HEIGHT/2, r, RED);
+    fill_circle(c, WIDTH/2, HEIGHT/2 + 2*r, r, BLUE);
+    sobel_filter(c);
+    save(c, JPG, "./imgs/filters/sobel2");
+    (void)r;
+
+    
+    read_to_canvas(c, "./assets/levi.jpg");
+    jitter_filter(c, 10);
+    save(c, JPG, "./imgs/filters/jitter2");
+    free(c->pixels);
+
+    read_to_canvas(c, "./assets/levi.jpg");
+    sobel_filter(c);
+    save(c, JPG, "./imgs/filters/sobel1");
+    
+
+    
+    read_to_canvas(c, "./assets/levi.jpg");
+    canny_filter(c, 0x02, 0x20);
+    save(c, JPG, "./imgs/filters/canny");
+
+}
+
 int main()
 {
+    srand(time(NULL));
     fill(&canvas, BG);
-    raytrace(&canvas);
-    save(&canvas, JPG, "./imgs/pers_raytrace");
+//    raytrace(&canvas);
+   // concaveCheckShowcase(&canvas);
+//   circleShowCase(&canvas);
+    //save(&canvas, JPG, "./imgs/circleShowCase");
+   // processing_showcase(&canvas);
+    filters_showcase(&canvas);
 }

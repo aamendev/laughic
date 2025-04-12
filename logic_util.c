@@ -1,4 +1,5 @@
 #include "./logic_util.h"
+#include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
 void swap(int* a, int* b)
@@ -62,12 +63,24 @@ void bary(int x0, int y0, int x1, int y1, int x2, int y2, int x, int y, float* b
 
 float rand_float()
 {
-    srand(time(NULL));
     return (float)rand() / RAND_MAX;
 }
 
 int rand_int()
 {
-    srand(time(NULL));
     return rand();
+}
+int rand_int_bound(i32 min, i32 max)
+{
+    int x= min + (rand() % (max - min)); 
+    return x; 
+}
+
+void inplace_min(u32* a, u32 b)
+{
+    *a = *a * (*a < b) + b * !(*a < b);
+}
+void inplace_max(u32* a, u32 b)
+{
+    *a = *a * (*a > b) + b * !(*a > b);
 }

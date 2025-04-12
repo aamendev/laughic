@@ -9,3 +9,20 @@ Some graphics algorithms to draw circles, ellipses, rectangles, lines, triangles
 
 ### Fractals
 ![showcase2 img](./imgs/fractal_showcase)
+![showcase2 img2](./imgs/julia_n079_p01889)
+
+### Image Processing
+
+#### Blur
+![showcase blur](./imgs/filters/binomial_2)
+#### Sobel
+![showcase sobel](./imgs/filters/sobel1)
+#### Canny
+![showcase Cany](./imgs/filters/canny)
+
+#### GreyScale
+![showcase grey](./imgs/processing/grey_scale)
+#### Colour Manipulation
+![showcase invertColours](./imgs/processing/invert)
+![showcase invertColours](./imgs/processing/changeMinBlue)
+

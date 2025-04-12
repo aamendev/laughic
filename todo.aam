@@ -17,3 +17,16 @@ struct
     point;
 }
 
+Processing
+{
+    Point
+    {
+    HistogramGeneration
+    }
+    Filters
+    {
+        Gaussian,
+        FT,
+        Box
+    }
+}

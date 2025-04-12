@@ -3,6 +3,50 @@
 #include <stdio.h>
 #include "./graphics_util.h"
 
+
+void signed_unpack(i16* comp, i64* c)
+{
+    for (int i = 0; i < 4; i++)
+    {
+        comp[i] = (i16)((*c >> (16 * i)) & 0xFFFF);
+    }
+}
+
+void signed_pack(i16* comp, i64* c)
+{
+    for (int i = 0; i < 4; i++)
+    {
+        *c |= ((i64)comp[i]<<(16 * i));
+    }
+}
+
+void signed_to_unsigned(i64* sgn, u32* un)
+{
+   i16 sgn_comp[4] = {0,0,0,0}; 
+   u8 un_comp[4] = {0, 0, 0 ,0};
+   signed_unpack(sgn_comp, sgn);
+   for (int i = 0; i < 4; i++)
+   {
+        un_comp[i] = (u8)sgn_comp[i] * (sgn_comp[i] > -1); 
+   }
+   *un = 0;
+   pack(un_comp, un);
+}
+
+void unsigned_to_signed(i64* sgn, u32* un)
+{
+   i16 sgn_comp[4] = {0,0,0,0}; 
+   u8 un_comp[4] = {0, 0, 0 ,0};
+   unpack(un_comp, un);
+   for (int i = 0; i < 4; i++)
+   {
+        sgn_comp[i] = un_comp[i]; 
+        //printf("Old: %x, New: %x\n",un_comp[i], sgn_comp[i]);
+   }
+   *sgn = 0;
+   signed_pack(sgn_comp, sgn);
+   //printf("Old: %x, New: %lx\n",*un, *sgn);
+}
 void unpack(u8* comp, u32* c)
 {
         comp[0] = *c&0XFF;
@@ -210,4 +254,20 @@ void newton2(Canvas *canvas, u16 iterations, void (*func)(float, float, float *,
 process:
         mix_colour(&canvas->pixels[i] , (1 - (float)iter / iterations) *  base_colour);
     }
+}
+
+i8 compare_with_comps(u32 c, u8 t)
+{
+    u8 comp[4] = {0,0,0,0};
+    unpack(comp, &c);
+    u8 notEqual = 0;
+    for (int i = 0; i < 3; i++)
+    {
+        if (comp[i] < t) return -1;
+        else if (comp[i] > t)
+        {
+            notEqual = 1;
+        }
+    }
+    return notEqual;
 }
