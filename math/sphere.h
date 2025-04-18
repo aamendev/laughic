@@ -10,13 +10,18 @@ typedef struct Sphere
     Vector3d center;
 } Sphere;
 
-int sphere_intersects(Ray* r, void* data);
+float sphere_intersects(Ray* r, void* data);
+void sphere_get_bounding_extents(Traceable* t, Vector3d* min, Vector3d* max);
+void sphere_get_bvh(Traceable* t, struct BVH* bvh);
 
-#define SPHERE_TRACE(s, c) ((Traceable)\
+#define SPHERE_TRACE(s, c, n) ((Traceable)\
         {\
-        .data = &s,\
+        .data = s,\
         .col = c,\
-        .intersects = sphere_intersects\
+        .name = n,\
+        .intersects = sphere_intersects,\
+        .get_bounding_extents = sphere_get_bounding_extents,\
+        .get_bvh = sphere_get_bvh\
         })
 
 #endif

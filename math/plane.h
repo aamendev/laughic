@@ -9,5 +9,5 @@ typedef struct Plane
     Vector3d normal;
     float d;
 } Plane;
-int plane_intersects(Ray* ray, void* data);
+float plane_intersects(Ray* ray, void* data);
 #endif

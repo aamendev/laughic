@@ -2,11 +2,26 @@
 #define TRACEABLE_H
 #include "ray.h"
 #include "../types.h"
+#include "vector3d.h"
+#include "../colours.h"
+
 typedef struct Traceable
 {
+    struct BVH
+    {
+        struct Traceable* root;
+        struct BVH* left;
+        struct BVH* right;
+    } m_bvh;
+
     void* data;
+    char* name;
     u32 col;
-    int (*intersects)(Ray* r, void* data);
+    int id;
+    float (*intersects)(Ray* r, void* data);
+    void(*get_bounding_extents)(struct Traceable* t, Vector3d* min, Vector3d* max);
+    void(*get_bvh)(struct Traceable* t, struct BVH* bvh);
 } Traceable;
+
 
 #endif

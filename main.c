@@ -7,35 +7,11 @@
 #include "./stb_image_write.h"
 #include "./shapes.h"
 #include "./newton_fractals.h"
-#include "cameras/camera.h"
-#include "cameras/fish_eye.h"
-#include "cameras/pinhole.h"
-#include "cameras/spherical.h"
 #include "logic_util.h"
-#include "math/aabb.h"
-#include "math/ray.h"
-#include "math/sphere.h"
-#include "math/traceable.h"
 #include "math/vector3d.h"
-#include "managers/scene.h"
 #include "processing.h"
-#include "samplers/jittered.h"
-#include "samplers/sampler.h"
-#define WIDTH 800
-#define HEIGHT 800
-
-#define BG 0xff382209
-#define WHITE 0xffffffff
-#define BLACK 0xff000000
-#define CYAN 0xffffff00
-#define MAGENTA 0xffff00ff
-#define YELLOW 0xff00ffff
-#define RED 0xff0000ff
-#define BLUE 0xffff0000
-#define GREEN 0xff00ff00
-#define PALE_BLUE 0xff800000
-#define PALE_RED 0xff000080
-#define PALE_GREEN 0xff008000
+#include "colours.h"
+#include "raytracer/scenes/sample_scene.h"
 
 typedef enum
 {
@@ -274,91 +250,10 @@ void fractal_showcase(Canvas* canvas)
 
 void raytrace(Canvas* canvas)
 {
-    Vector3d rayDirection = {.x = 0, .y = 0, .z = -1};
-    Vector3d initPosition = {.x = 0, .y = 0, .z = 100};
-    Ray r = {.direction = rayDirection, .base = initPosition};
-
-    Sphere s = {.center = {.x = 0, .y = 0, .z = 0}, .r = 85.0f};
-    Sphere s2 = {.center =  {.x = -20, .y = 20, .z = 0}, .r = 100.0f};
-    Sphere debug_sphere = {.center = {.x = -100, 0, 0}, .r = 10};
-    AABB box = 
-    {
-        .min_coord = {.x = 0, .y = 0, .z = 0}, 
-        .max_coord = {.x = 100, .y = 100, .z = 50}
-    };
-
-    Traceable t1 = SPHERE_TRACE(s, CYAN);
-    Traceable t2 = SPHERE_TRACE(s2, MAGENTA);
-    Traceable boxTrace = AABB_TRACE(box, YELLOW);
-    Traceable deb = SPHERE_TRACE(debug_sphere, RED);
-    Traceable* traceables[20] = {&deb, &boxTrace, &t1, &t2};
-
-    SamplerData data = (SamplerData){
-        .sample_count = 4,
-        .set_count = 4,
-        .used_count = 0,
-        .init_index = 0,
-        .samples = NULL,
-        .shuffled_indices = NULL
-    };
-
-    PinholeData p_data = {.d = 100.0};
-
-    FishEyeData f_data = 
-    {
-        .height = canvas->height,
-        .width = canvas->width,
-        .pixel_size = 1,
-        .max_psi = 360
-    };
-
-    SphericalData s_data = 
-    {
-        .height = canvas->height,
-        .width = canvas->width,
-        .pixel_size = 1,
-        .max_lambda = 90,
-        .max_psi = 90
-    };
-
-    CameraData cam_data = (CameraData)
-    {
-        .eye = {.x =  0, .y = 100, .z = 130},
-        .look_at = {.x = 0, .y = 0, .z = 0},
-        .up = {.x = 0, .y = 1, .z = 0},
-        .extra = &p_data,
-    };
-    printf("%f", *(float*)cam_data.extra);
-
-    Camera pinhole_cam = PINHOLE(cam_data);
-    Camera fisheye_cam = FISH_EYE(cam_data);
-    Camera sherical_cam = SPHERICAL_CAM(cam_data);
-    (void)p_data;
-    (void)pinhole_cam;
-    (void)f_data;
-    (void)fisheye_cam;
-    (void)s_data;
-    (void)sherical_cam;
-
-    Sampler jittered = JITTERED_SAMPLER(data);
-    SceneData scene_data = {
-        .canvas = canvas, 
-        .default_colour = BLACK,
-        .sampler = &jittered,
-        .pixelSize = 1,
-        .ray = &r,
-        .traceables = &traceables[0], 
-        .traceable_count = 4,
-        .cam = &pinhole_cam
-    };
-
-    Scene scene = {
-        .scene_data = &scene_data,
-        .ray_trace = perspective_tracer
-    };
-
-    scene.ray_trace(&scene_data);
+    rect_scene(canvas);
+    save(canvas, JPG, "./imgs/raytracer/rect");
 }
+
 
 u32 checkConcave(u32* points, u32 count)
 {
@@ -547,17 +442,12 @@ void filters_showcase(Canvas* c)
     read_to_canvas(c, "./assets/levi.jpg");
     canny_filter(c, 0x02, 0x20);
     save(c, JPG, "./imgs/filters/canny");
-
 }
 
 int main()
 {
     srand(time(NULL));
     fill(&canvas, BG);
-//    raytrace(&canvas);
-   // concaveCheckShowcase(&canvas);
-//   circleShowCase(&canvas);
-    //save(&canvas, JPG, "./imgs/circleShowCase");
-   // processing_showcase(&canvas);
-    filters_showcase(&canvas);
+    //filters_showcase(&canvas);
+    raytrace(&canvas);
 }

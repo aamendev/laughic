@@ -62,3 +62,7 @@ Vector3d normalise(Vector3d* v)
 {
     return scale(v, 1 / magnitude(v));
 }
+void print_vector(Vector3d* v)
+{
+    printf("(%f, %f, %f)", v->x, v->y, v->z);
+}
