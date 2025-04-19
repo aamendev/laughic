@@ -38,7 +38,7 @@ void simple_tracer(SceneData* scene)
                 for (int i = 0; i < scene->traceable_count; i++)
                 {
                     float t = scene->traceables[i]->intersects
-                            (scene->ray, scene->traceables[i]->data);
+                            (scene->ray, scene->traceables[i]->data, NULL);
                     if (t >= 0)
                     {
                         printf("Value: %f\n ", t);
@@ -133,7 +133,7 @@ void optimized_perspective_tracer(SceneData* scene)
                 {
                     current = stack[count--];
                     inter_param = current->root->intersects
-                            (scene->ray, current->root->data);
+                            (scene->ray, current->root->data, NULL);
                     int cond = (inter_param >= 0 && inter_param < currMinVal);
                     if (cond)
                     {
@@ -214,7 +214,7 @@ void unoptimized_perspective_tracer(SceneData* scene)
                 for (int tr = 0; tr < scene->traceable_count; tr++)
                 {
                     inter_param = scene->traceables[tr]->intersects
-                            (scene->ray, scene->traceables[tr]->data);
+                            (scene->ray, scene->traceables[tr]->data, NULL);
                     int cond = (inter_param >= 0 && inter_param < currMinVal);
                     if (cond)
                     {
@@ -322,4 +322,157 @@ void combine_bvh(struct BVH* b0, struct BVH* b1)
     b0->left = newLeft;
     b0->right = b1;
     b0->root = bounding;
+}
+
+void check_bvh_intersection(struct BVH* root, Ray* ray, 
+        u32 trace_count, 
+        i32* currMin, 
+        f32* currMinVal,
+        Vector3d* curr_normal)
+{
+    struct BVH** stack = 
+        malloc(trace_count * sizeof(struct BVH*));
+    *currMin = -1;
+    *currMinVal = INFINITY;
+    struct BVH* current = root;
+    int count = -1;
+    stack[0] = current;
+    count++;
+    float inter_param = -1.0f;
+    while (count > -1)
+    {
+        current = stack[count--];
+        inter_param = current->root->intersects
+            (ray, current->root->data, curr_normal);
+        int cond = (inter_param >= 0 && inter_param < *currMinVal);
+        if (cond)
+        {
+            if (current->left == NULL && current->right == NULL)
+            {
+                *currMin = current->root->id;
+                *currMinVal = inter_param;
+            }
+            else 
+            {
+                stack[++count] = current->right;
+                stack[++count] = current->left;
+            }
+        }
+    }
+    free(stack);
+}
+void ligh_tracer(SceneData* scene)
+{
+    struct BVH* bvh = malloc(sizeof(struct BVH));
+    if (bvh == NULL)
+    {
+        printf("BVH Error\n");
+        exit(1);
+    }
+    scene->sampler->generate_samples(scene->sampler->data);
+    float* means = malloc((scene->traceable_count + 1) * sizeof(float));
+    u32* cols = malloc((scene->traceable_count + 1) * sizeof(u32));
+    u32* temp_cols = malloc((scene->traceable_count + 1) * sizeof(u32));
+
+    for (int i = 0; i < scene->traceable_count; i++)
+    {
+        cols[i] = scene->traceables[i]->col;
+        scene->traceables[i]->id = i;
+    }
+    construct_bvh(scene, bvh);
+    cols[scene->traceable_count] = scene->default_colour;
+    Point2D pp;
+
+    scene->ray->base = scene->cam->data->eye;
+    int samples = scene->sampler->data->sample_count;
+
+    struct BVH** stack = 
+        malloc(scene->traceable_count * sizeof(struct BVH*));
+
+    for (int j = 0; j < scene->canvas->height; j++)
+    {
+        for (int i = 0; i < scene->canvas->width; i++)
+        {
+            for (int k = 0; k < scene->traceable_count; k++) 
+            {
+                means[k] = 0;
+                temp_cols[k] = cols[k];
+            }
+            temp_cols[scene->traceable_count] = scene->default_colour;
+
+                int currMin = -1;
+                float currMinVal = INFINITY;
+                Vector3d curr_pos;
+                Vector3d curr_normal;
+            for (int k = 0; k < samples * samples; k++)
+            {
+                Point2D next_sample = scene->sampler->get_next(scene->sampler->data);
+                pp.x = scene->pixelSize * 
+                    (i - 0.5 * (scene->canvas->width - 1) + next_sample.x);
+                pp.y = scene->pixelSize * 
+                    (j - 0.5 * (scene->canvas->height - 1) + next_sample.y);
+                scene->ray->direction =
+                    scene->cam->ray_direction(scene->cam->data, &pp);
+                check_bvh_intersection(
+                        bvh, scene->ray, scene->traceable_count, 
+                        &currMin, &currMinVal, &curr_normal);
+                
+                if (currMin > -1)
+                {
+                    //printf("IN: %d\n", currMin);
+                    curr_pos = scale(&scene->ray->direction, currMinVal);
+                    curr_pos = add(&curr_pos, &scene->ray->base);
+                    means[currMin]++; 
+                    i32 new_min = currMin;
+                    u32 l_colour;
+                    u8 l_comps[4];
+                    u8 c_comps[4] = {0, 0, 0, 0};
+                    u8 temp_c_comps[4];
+                    u32 count = 0;
+                    Ray ligh_ray;
+                    for (int l_index = 0; l_index < scene->light_count; l_index++)
+                    {
+                        l_colour = BLACK;
+                        ligh_ray = scene->lights[l_index].get_rays(&curr_pos, 
+                                scene->lights[l_index].data, &count)[0];
+                        check_bvh_intersection(bvh, &ligh_ray, 
+                                scene->traceable_count, 
+                                &new_min, &currMinVal, &curr_normal);
+                        if (dot(&ligh_ray.direction, &curr_normal) < 0)
+                        {
+                            if (new_min == currMin)
+                            {
+                            l_colour =
+                                scene->lights[l_index].get_radiance(scene->lights[l_index].data);
+                            }
+                        }
+                        unpack(l_comps, &l_colour);
+                        unpack(temp_c_comps, &cols[currMin]);
+                        for (int cc = 0; cc < 3; cc++)
+                        {
+                            float fac = (f32)l_comps[cc] / 0xff;
+                            temp_c_comps[cc] *= fac;
+                            c_comps[cc] = fmin(0xff, (u16)c_comps[cc] + (u16)temp_c_comps[cc]);
+                        }
+                    }
+                    c_comps[3] = 0xff;
+                    temp_cols[currMin] = 0;
+                    pack(c_comps, &temp_cols[currMin]);
+                }
+            }
+            float sum = 0;
+            for (int k = 0; k < scene->traceable_count; k++)
+            {
+                means[k] /= (samples * samples);
+                sum += means[k];
+            }
+            means[scene->traceable_count] = 1 - sum;
+            u32 col = weighted_sum(&temp_cols[0], &means[0], scene->traceable_count + 1);
+            fill_rect(scene->canvas, i, j, scene->pixelSize, scene->pixelSize, col);
+        }
+    }
+    free(stack);
+    free(cols);
+    free(means);
+    free(bvh);
 }

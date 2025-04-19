@@ -38,6 +38,20 @@ Vector3d add(Vector3d* v1, Vector3d* v2)
         .z = v1->z + v2->z,
     };
 }
+int vector_equal(Vector3d* v1, Vector3d* v2)
+{
+    return 
+        v1->x == v2->x && 
+        v1->y == v2->y && 
+        v1->z == v2->z; 
+}
+int is_zero(Vector3d* v1)
+{
+    return 
+        v1->x == 0 && 
+        v1->y == 0 && 
+        v1->z == 0; 
+}
 Vector3d sub(Vector3d* v1, Vector3d* v2)
 {
     return (Vector3d){
@@ -60,9 +74,30 @@ float get_theta(Vector3d* v1, Vector3d* v2)
 }
 Vector3d normalise(Vector3d* v)
 {
+    if (squared_magnitude(v) == 0) return *v;
     return scale(v, 1 / magnitude(v));
 }
 void print_vector(Vector3d* v)
 {
     printf("(%f, %f, %f)", v->x, v->y, v->z);
+}
+Vector3d mid_point(Vector3d* v1, Vector3d* v2)
+{
+    return 
+    (Vector3d)
+    {
+        .x = (v1->x + v2->x) /2,    
+        .y = (v1->y + v2->y) /2,    
+        .z = (v1->z + v2->z) /2,    
+    };
+}
+Vector3d to_unit_cube(Vector3d* v1, Vector3d* v2)
+{
+    return 
+    (Vector3d)
+    {
+        .x = fabs(v1->x - v2->x) /2,    
+        .y = fabs(v1->y - v2->y) /2,    
+        .z = fabs(v1->z - v2->z) /2,    
+    };
 }

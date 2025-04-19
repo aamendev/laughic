@@ -1,4 +1,6 @@
 #include "sample_scene.h"
+#include "../lights/point_light.h"
+#include "../lights/ambient_light.h"
 
 void rect_scene(Canvas* canvas)
 {
@@ -6,32 +8,32 @@ void rect_scene(Canvas* canvas)
     Vector3d initPosition = {.x = 0, .y = 0, .z = 100};
     Ray r = {.direction = rayDirection, .base = initPosition};
 
-    Sphere s = {.center = {.x = 0, .y = -30, .z = 0}, .r = 50.0f};
+    Sphere s = {.center = {.x = 50, .y = -30, .z = 25}, .r = 20.0f};
     AABB floor = 
     {
-        .min_coord = {.x = -200, .y = 100, .z = -200},
+        .min_coord = {.x = -200, .y = 101, .z = -200},
         .max_coord = {.x = 200, .y = 100, .z = 200},
     };
     AABB front = 
     {
         .min_coord = {.x = 0, .y = 0, .z = 50}, 
-        .max_coord = {.x = 100, .y = 100, .z = 50}
+        .max_coord = {.x = 100, .y = 100, .z = 51}
     };
     AABB right = 
     {
-        .min_coord = {.x = 100, .y = 0, .z = 0}, 
-        .max_coord = {.x = 100, .y = 100, .z = 50}
+        .min_coord = {.x = 100, .y = 0, .z = 0},
+        .max_coord = {.x = 101, .y = 100, .z = 50}, 
     };
     AABB back = 
     {
         .min_coord = {.x = 0, .y = 0, .z = 0}, 
-        .max_coord = {.x = 100, .y = 100, .z = 0}
+        .max_coord = {.x = 100, .y = 100, .z = 1}
     };
 
     AABB left = 
     {
-        .min_coord = {.x = 0, .y = 0, .z = 0}, 
-        .max_coord = {.x = 0, .y = 100, .z = 50}
+        .min_coord = {.x = 0, .y = 0, .z = 0},
+        .max_coord = {.x = 1, .y = 100, .z = 50}, 
     };
 
     Traceable frontTrace = AABB_TRACE(&front, YELLOW, "bf");
@@ -47,6 +49,23 @@ void rect_scene(Canvas* canvas)
         &ball,
     };
     int trace_count = 6;
+    (void)ball;
+    PointLight pl = 
+    {
+        .colour = WHITE,
+        .ls = 1.0f,
+        .pos = {100, -350, 50}
+    };
+
+    AmbientLight amb = 
+    {
+        .colour = WHITE,
+        .ls = 0.0f
+    };
+    Light first_pl = POINT_LIGHT(&pl, "fpl");
+    Light first_amb = AMBIENT_LIGHT(&amb, "famb");
+    Light lights[20] = {first_pl, first_amb};
+    int light_count = 2;
 
     SamplerData data = (SamplerData){
         .sample_count = 4,
@@ -105,11 +124,13 @@ void rect_scene(Canvas* canvas)
         .traceable_count = trace_count,
         .cam = &pinhole_cam,
         .optimized = 1,
+        .lights = &lights[0],
+        .light_count = light_count
     };
 
     Scene scene = {
         .scene_data = &scene_data,
-        .ray_trace = perspective_tracer
+        .ray_trace = ligh_tracer
     };
 
     scene.ray_trace(&scene_data);

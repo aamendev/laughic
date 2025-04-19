@@ -8,6 +8,7 @@
 #include "../samplers/sampler.h"
 #include "../cameras/camera.h"
 #include "../math/aabb.h"
+#include "../raytracer/lights/light.h"
 typedef struct SceneData
 {
     Canvas* canvas;
@@ -19,6 +20,8 @@ typedef struct SceneData
     int traceable_count;
     Camera* cam;
     int optimized;
+    Light* lights;
+    u32 light_count;
 } SceneData;
 
 typedef struct Scene
@@ -31,6 +34,10 @@ void simple_tracer(SceneData* scene);
 void perspective_tracer(SceneData* scene);
 void optimized_perspective_tracer(SceneData* scene);
 void unoptimized_perspective_tracer(SceneData* scene);
+void ligh_tracer(SceneData* data);
 void construct_bvh(SceneData* sc, struct BVH*);
 void combine_bvh(struct BVH*, struct BVH*);
+void check_bvh_intersection(struct BVH*, Ray* ray, u32 trace_count, 
+        i32* currMin, 
+        f32* currMinVal, Vector3d* curr_normal);
 #endif

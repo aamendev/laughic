@@ -10,7 +10,7 @@ typedef struct Sphere
     Vector3d center;
 } Sphere;
 
-float sphere_intersects(Ray* r, void* data);
+float sphere_intersects(Ray* r, void* data, Vector3d* normal);
 void sphere_get_bounding_extents(Traceable* t, Vector3d* min, Vector3d* max);
 void sphere_get_bvh(Traceable* t, struct BVH* bvh);
 
