@@ -11,7 +11,7 @@ Ray* amb_get_rays(Vector3d* in_position, void* data, u32* count)
     return ray;
 }
 
-u32 amb_get_radiance(void* data)
+u32 amb_get_radiance(Vector3d* in_position, void* data)
 {
     AmbientLight* pl = (AmbientLight*)data;
     u8 comps[4];

@@ -1,9 +1,12 @@
 #include "sample_scene.h"
 #include "../lights/point_light.h"
 #include "../lights/ambient_light.h"
+#include "../../raytracer/brdf/lambertain.h"
+#include "../../raytracer/brdf/glossy_specular.h"
 
 void rect_scene(Canvas* canvas)
 {
+
     Vector3d rayDirection = {.x = 0, .y = 0, .z = -1};
     Vector3d initPosition = {.x = 0, .y = 0, .z = 100};
     Ray r = {.direction = rayDirection, .base = initPosition};
@@ -36,24 +39,126 @@ void rect_scene(Canvas* canvas)
         .max_coord = {.x = 1, .y = 100, .z = 50}, 
     };
 
+    LambertainData front_diffuse_data = 
+    {
+        .kd = 0.8f,
+        .cd = YELLOW
+    };
+    BRDF front_diffuse = LAMBERTAIN_BRDF(&front_diffuse_data, "front_diffuse"); 
+    GlossySpecularData front_specular_data = 
+    {
+        .ks = 0.3f,
+        .cs = YELLOW,
+        .exp = 10,
+    };
+    BRDF front_specular = GLOSSY_SPECULAR_BRDF(&front_specular_data, "front_specular"); 
+
     Traceable frontTrace = AABB_TRACE(&front, YELLOW, "bf");
+    frontTrace.specular = front_specular;
+    frontTrace.diffuse = front_diffuse;
+
+    LambertainData right_diffuse_data = 
+    {
+        .kd = 0.5f,
+        .cd = RED
+    };
+    BRDF right_diffuse = LAMBERTAIN_BRDF(&right_diffuse_data, "right_diffuse"); 
+    GlossySpecularData right_specular_data = 
+    {
+        .ks = 0.9f,
+        .cs = RED,
+        .exp = 10,
+    };
+    BRDF right_specular = GLOSSY_SPECULAR_BRDF(&right_specular_data, "right_specular"); 
+
     Traceable rightTrace = AABB_TRACE(&right, RED, "br");
-    Traceable backTrace = AABB_TRACE(&back, GREEN, "bb");
-    Traceable leftTrace = AABB_TRACE(&left, BLUE, "bl");
-    Traceable floorTrace = AABB_TRACE(&floor, WHITE, "floor");
-    Traceable ball = SPHERE_TRACE(&s, CYAN, "ball");
+    rightTrace.specular = right_specular;
+    rightTrace.diffuse = right_diffuse;
+
+    LambertainData left_diffuse_data = 
+    {
+        .kd = 0.6f,
+        .cd = BLUE,
+    };
+    BRDF left_diffuse = LAMBERTAIN_BRDF(&left_diffuse_data, "left_diffuse"); 
+    GlossySpecularData left_specular_data = 
+    {
+        .ks = 0.7f,
+        .cs = BLUE,
+        .exp = 10,
+    };
+    BRDF left_specular = GLOSSY_SPECULAR_BRDF(&left_specular_data, "left_specular"); 
+
+    Traceable leftTrace = AABB_TRACE(&left, BLUE, "br");
+    leftTrace.specular = left_specular;
+    leftTrace.diffuse = left_diffuse;
+
+    LambertainData back_diffuse_data = 
+    {
+        .kd = 0.5f,
+        .cd = GREEN
+    };
+    BRDF back_diffuse = LAMBERTAIN_BRDF(&back_diffuse_data, "back_diffuse"); 
+    GlossySpecularData back_specular_data = 
+    {
+        .ks = 0.5f,
+        .cs = GREEN,
+        .exp = 10,
+    };
+    BRDF back_specular = GLOSSY_SPECULAR_BRDF(&back_specular_data, "back_specular"); 
+
+    Traceable backTrace = AABB_TRACE(&back, GREEN, "br");
+    backTrace.specular = back_specular;
+    backTrace.diffuse = back_diffuse;
+
+    LambertainData floor_diffuse_data = 
+    {
+        .kd = 0.9f,
+        .cd = WHITE
+    };
+    BRDF floor_diffuse = LAMBERTAIN_BRDF(&floor_diffuse_data, "floor_diffuse"); 
+    GlossySpecularData floor_specular_data = 
+    {
+        .ks = 0.0f,
+        .cs = WHITE,
+        .exp = 1,
+    };
+    BRDF floor_specular = GLOSSY_SPECULAR_BRDF(&floor_specular_data, "floor_specular"); 
+
+    Traceable floorTrace = AABB_TRACE(&floor, WHITE, "br");
+    floorTrace.specular = floor_specular;
+    floorTrace.diffuse = floor_diffuse;
+
+    LambertainData ball_diffuse_data = 
+    {
+        .kd = 0.7f,
+        .cd = CYAN
+    };
+    BRDF ball_diffuse = LAMBERTAIN_BRDF(&ball_diffuse_data, "ball_diffuse"); 
+    GlossySpecularData ball_specular_data = 
+    {
+        .ks = 0.7f,
+        .cs = CYAN,
+        .exp = 20,
+    };
+    BRDF ball_specular = GLOSSY_SPECULAR_BRDF(&ball_specular_data, "ball_specular"); 
+
+    Traceable ballTrace = SPHERE_TRACE(&s, CYAN, "br");
+    ballTrace.specular = ball_specular;
+    ballTrace.diffuse = ball_diffuse;
+
     Traceable* traceables[20] = 
     {
         &rightTrace, &backTrace, 
         &floorTrace, &frontTrace, &leftTrace, 
-        &ball,
+        &ballTrace,
     };
     int trace_count = 6;
-    (void)ball;
+   // (void)ball;
     PointLight pl = 
     {
         .colour = WHITE,
-        .ls = 1.0f,
+        .ls = 1.0e5f,
         .pos = {100, -350, 50}
     };
 
@@ -65,7 +170,7 @@ void rect_scene(Canvas* canvas)
     Light first_pl = POINT_LIGHT(&pl, "fpl");
     Light first_amb = AMBIENT_LIGHT(&amb, "famb");
     Light lights[20] = {first_pl, first_amb};
-    int light_count = 2;
+    int light_count = 1;
 
     SamplerData data = (SamplerData){
         .sample_count = 4,
@@ -124,6 +229,10 @@ void rect_scene(Canvas* canvas)
         .traceable_count = trace_count,
         .cam = &pinhole_cam,
         .optimized = 1,
+    };
+    MaterialData mat_data = 
+    {
+        .ambient_light = NULL,
         .lights = &lights[0],
         .light_count = light_count
     };
@@ -133,5 +242,5 @@ void rect_scene(Canvas* canvas)
         .ray_trace = ligh_tracer
     };
 
-    scene.ray_trace(&scene_data);
+    scene.ray_trace(&scene_data, &mat_data);
 }

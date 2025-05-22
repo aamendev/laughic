@@ -16,6 +16,9 @@ int rand_int_bound(i32 min, i32 max);
 void inplace_min(u32* a, u32 b);
 void inplace_max(u32* a, u32 b);
 
+#ifndef PI
 #define PI (3.1415926535)
+#endif
+
 #define FLT_MIN (0.0005f)
 #endif

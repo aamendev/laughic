@@ -2,7 +2,7 @@
 #include <math.h>
 #include <stdio.h>
 
-void simple_tracer(SceneData* scene)
+void simple_tracer(SceneData* scene, MaterialData* material)
 {
     scene->sampler->generate_samples(scene->sampler->data);
     float x, y;
@@ -63,22 +63,22 @@ void simple_tracer(SceneData* scene)
     free(means);
 }
 
-void perspective_tracer(SceneData *scene)
+void perspective_tracer(SceneData *scene, MaterialData* material)
 {
     switch(scene->optimized)
     {
         case 0 :
             {
-                unoptimized_perspective_tracer(scene);
+                unoptimized_perspective_tracer(scene, material);
             }break;
         case 1:
             {
-                optimized_perspective_tracer(scene);
+                optimized_perspective_tracer(scene, material);
             }break;
     }
 }
 
-void optimized_perspective_tracer(SceneData* scene)
+void optimized_perspective_tracer(SceneData* scene, MaterialData* material)
 {
     struct BVH* bvh = malloc(sizeof(struct BVH));
     if (bvh == NULL)
@@ -177,7 +177,7 @@ void optimized_perspective_tracer(SceneData* scene)
     free(bvh);
 }
 
-void unoptimized_perspective_tracer(SceneData* scene)
+void unoptimized_perspective_tracer(SceneData* scene, MaterialData* material)
 {
     scene->sampler->generate_samples(scene->sampler->data);
     float* means = malloc((scene->traceable_count + 1) * sizeof(float));
@@ -361,7 +361,7 @@ void check_bvh_intersection(struct BVH* root, Ray* ray,
     }
     free(stack);
 }
-void ligh_tracer(SceneData* scene)
+void ligh_tracer(SceneData* scene, MaterialData* material)
 {
     struct BVH* bvh = malloc(sizeof(struct BVH));
     if (bvh == NULL)
@@ -427,32 +427,56 @@ void ligh_tracer(SceneData* scene)
                     u32 l_colour;
                     u8 l_comps[4];
                     u8 c_comps[4] = {0, 0, 0, 0};
-                    u8 temp_c_comps[4];
+                    u8 diffuse_comps[4];
+                    u8 specular_comps[4];
+                    //u8 temp_c_comps[4];
                     u32 count = 0;
                     Ray ligh_ray;
-                    for (int l_index = 0; l_index < scene->light_count; l_index++)
+                    for (int l_index = 0; l_index < material->light_count; l_index++)
                     {
                         l_colour = BLACK;
-                        ligh_ray = scene->lights[l_index].get_rays(&curr_pos, 
-                                scene->lights[l_index].data, &count)[0];
+                        ligh_ray = material->lights[l_index].get_rays(&curr_pos, 
+                                material->lights[l_index].data, &count)[0];
                         check_bvh_intersection(bvh, &ligh_ray, 
                                 scene->traceable_count, 
                                 &new_min, &currMinVal, &curr_normal);
-                        if (dot(&ligh_ray.direction, &curr_normal) < 0)
+                        float ndotw = dot(&ligh_ray.direction, &curr_normal);
+                        if (ndotw < 0)
                         {
                             if (new_min == currMin)
                             {
                             l_colour =
-                                scene->lights[l_index].get_radiance(scene->lights[l_index].data);
+                                material->lights[l_index].get_radiance(&curr_pos,
+                                        material->lights[l_index].data);
                             }
                         }
+                        u32 diffuse = 
+                            scene->traceables[currMin]->
+                            diffuse.f(scene->traceables[currMin]->diffuse.data,
+                                    &scene->ray->direction, &ligh_ray.direction);
+
+                        GlossySpecularData* sd = 
+                            (GlossySpecularData*) 
+                            scene->traceables[currMin]->specular.data;
+                        sd->latest_normal = &curr_normal;
+
+                        u32 specular = 
+                            scene->traceables[currMin]->
+                            specular.f(scene->traceables[currMin]->specular.data,
+                                    &scene->ray->direction, &ligh_ray.direction);
+
+                        unpack(diffuse_comps, &diffuse); 
+                        unpack(specular_comps, &specular); 
                         unpack(l_comps, &l_colour);
-                        unpack(temp_c_comps, &cols[currMin]);
+                        //unpack(temp_c_comps, &cols[currMin]);
                         for (int cc = 0; cc < 3; cc++)
                         {
-                            float fac = (f32)l_comps[cc] / 0xff;
-                            temp_c_comps[cc] *= fac;
-                            c_comps[cc] = fmin(0xff, (u16)c_comps[cc] + (u16)temp_c_comps[cc]);
+                            float fac = (f32)l_comps[cc] / 0xff * 
+                                ((f32)diffuse_comps[cc] / 0xff 
+                                 + (f32)specular_comps[cc] / 0xff) * -ndotw;
+
+                            //temp_c_comps[cc] *= fac;
+                            c_comps[cc] = fmin(0xff, (u16)c_comps[cc] + (u16)(fac * 0xff));
                         }
                     }
                     c_comps[3] = 0xff;

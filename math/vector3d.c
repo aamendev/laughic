@@ -91,6 +91,18 @@ Vector3d mid_point(Vector3d* v1, Vector3d* v2)
         .z = (v1->z + v2->z) /2,    
     };
 }
+
+float distance_squared(Vector3d* v1, Vector3d* v2)
+{
+    Vector3d temp = 
+    (Vector3d)
+    {
+        .x = (v1->x - v2->x),    
+        .y = (v1->y - v2->y),    
+        .z = (v1->z - v2->z),    
+    };
+    return squared_magnitude(&temp);
+}
 Vector3d to_unit_cube(Vector3d* v1, Vector3d* v2)
 {
     return 

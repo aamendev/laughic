@@ -17,5 +17,7 @@ typedef int Errno;
 
 #define COS_PI_OVER_8 (0.9238795f)
 #define SIN_PI_OVER_8 (0.3826834f)
+#define PI (3.14159265359f)
+#define INV_PI (0.31830988618f)
 
 #endif

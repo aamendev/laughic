@@ -12,14 +12,16 @@ Ray* pl_get_rays(Vector3d* in_position, void* data, u32* count)
     return ray;
 }
 
-u32 pl_get_radiance(void* data)
+u32 pl_get_radiance(Vector3d* in_position, void* data)
 {
     PointLight* pl = (PointLight*)data;
+    Vector3d diff = sub(&pl->pos, in_position);
+    f32 atten = 1.0f/squared_magnitude(&diff);
     u8 comps[4];
     unpack(comps, &pl->colour);
     for (int i = 0; i < 3; i++)
     {
-        comps[i] *= pl->ls;
+        comps[i] = fmin(0xff, (u16)comps[i] * (pl->ls * atten));
     }
     u32 ret_colour = 0;
     pack(comps, &ret_colour); 

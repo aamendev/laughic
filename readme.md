@@ -11,6 +11,9 @@ Some graphics algorithms to draw circles, ellipses, rectangles, lines, triangles
 ![showcase2 img](./imgs/fractal_showcase)
 ![showcase2 img2](./imgs/julia_n079_p01889)
 
+### Ray Tracing
+![showcase raytrace](./imgs/raytracer/new_light)
+
 ### Image Processing
 
 #### Blur

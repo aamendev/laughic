@@ -14,6 +14,7 @@ Vector3d reject(Vector3d* v1, Vector3d* v2);
 Vector3d add(Vector3d* v1, Vector3d* v2);
 Vector3d sub(Vector3d* v1, Vector3d* v2);
 Vector3d mid_point(Vector3d* v1, Vector3d* v2);
+float distance_squared(Vector3d* v1, Vector3d* v2);
 Vector3d to_unit_cube(Vector3d* v1, Vector3d* v2);
 int is_zero(Vector3d* v1);
 int vector_equal(Vector3d* v1, Vector3d* v2);

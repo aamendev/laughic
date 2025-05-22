@@ -10,6 +10,13 @@ typedef struct Light
    void* data;
    char* name;
    Ray* (*get_rays)(Vector3d* in_position, void* data, u32* count);
-   u32 (*get_radiance)(void* data);
+   u32 (*get_radiance)(Vector3d* in_position, void* data);
 }Light;
+
+typedef struct MaterialData
+{
+    Light* ambient_light;
+    Light* lights;
+    u32 light_count;
+} MaterialData;
 #endif

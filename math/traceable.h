@@ -4,6 +4,7 @@
 #include "../types.h"
 #include "vector3d.h"
 #include "../colours.h"
+#include "../raytracer/brdf/brdf.h"
 
 typedef struct Traceable
 {
@@ -18,6 +19,9 @@ typedef struct Traceable
     char* name;
     u32 col;
     int id;
+    BRDF ambient;
+    BRDF diffuse;
+    BRDF specular;
     float (*intersects)(Ray* r, void* data, Vector3d* normal);
     void(*get_bounding_extents)(struct Traceable* t, Vector3d* min, Vector3d* max);
     void(*get_bvh)(struct Traceable* t, struct BVH* bvh);

@@ -12,6 +12,7 @@
 #include "processing.h"
 #include "colours.h"
 #include "raytracer/scenes/sample_scene.h"
+#include "./experiments/noise_texture.h"
 
 typedef enum
 {
@@ -251,7 +252,7 @@ void fractal_showcase(Canvas* canvas)
 void raytrace(Canvas* canvas)
 {
     rect_scene(canvas);
-    save(canvas, JPG, "./imgs/raytracer/rect");
+    save(canvas, JPG, "./imgs/raytracer/new_light");
 }
 
 
@@ -444,10 +445,32 @@ void filters_showcase(Canvas* c)
     save(c, JPG, "./imgs/filters/canny");
 }
 
+void run_exp(Canvas* c)
+{
+    init_noise();
+    float* data = malloc(c->width * c->height * sizeof(float));
+    //warp(1.8f, 1.2f, 8, 0.7f, data, c->width, c->height);
+    worley(0, data, c->width, c->height);
+    //fbm(1.8f, 1.2f, 12, data, c->width, c->height);
+    u8 comps[4] = {0,0,0,255};
+    for (int i = 0; i < c->width * c->height; i++)
+    {
+        f32 currData = fabs(data[i]) * (fabs(data[i]) <= 1.0f) + 
+            1.0f * (fabs(data[i]) > 1.0f);
+        comps[0] = currData * 255; 
+        comps[1] = currData * 255; 
+        comps[2] = currData * 255; 
+        c->pixels[i] = 0;
+        pack(comps, &c->pixels[i]);
+    }
+    free(data);
+    save(c, JPG, "./imgs/experiments/noise");
+}
 int main()
 {
     srand(time(NULL));
     fill(&canvas, BG);
     //filters_showcase(&canvas);
     raytrace(&canvas);
+    //run_exp(&canvas);
 }
