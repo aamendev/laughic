@@ -102,7 +102,7 @@ u32 weighted_sum(u32* cols, float* means, u32 count)
     {
         unpack(comps, &cols[i]);
         for (int j = 0; j < 4; j++)
-            out[j] += (comps[j] * means[i]);
+            out[j] = fmin(0xff, (u16)out[j] + (comps[j] * means[i]));
         sum += means[i];
     }
     pack(out, &current);

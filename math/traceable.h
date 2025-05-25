@@ -22,6 +22,7 @@ typedef struct Traceable
     BRDF ambient;
     BRDF diffuse;
     BRDF specular;
+    int is_mirror;
     float (*intersects)(Ray* r, void* data, Vector3d* normal);
     void(*get_bounding_extents)(struct Traceable* t, Vector3d* min, Vector3d* max);
     void(*get_bvh)(struct Traceable* t, struct BVH* bvh);

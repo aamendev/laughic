@@ -252,6 +252,7 @@ void fractal_showcase(Canvas* canvas)
 void raytrace(Canvas* canvas)
 {
     rect_scene(canvas);
+    //test_scene(canvas);
     save(canvas, JPG, "./imgs/raytracer/new_light");
 }
 

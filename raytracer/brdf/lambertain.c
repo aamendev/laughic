@@ -29,7 +29,7 @@ u32 lambertain_rho(void* data, Vector3d* out)
     u8 new_comp[4];
     for (int i = 0; i < 3; i++)
     {
-        new_comp[i] = d->kd * (f32)comp[i];
+        new_comp[i] = fmin(0xff, d->kd * (f32)comp[i]);
     }
     new_comp[3] = comp[3];
     u32 ret = 0;

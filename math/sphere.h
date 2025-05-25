@@ -20,6 +20,7 @@ void sphere_get_bvh(Traceable* t, struct BVH* bvh);
         .col = c,\
         .name = n,\
         .intersects = sphere_intersects,\
+        .is_mirror = 0,\
         .get_bounding_extents = sphere_get_bounding_extents,\
         .get_bvh = sphere_get_bvh\
         })

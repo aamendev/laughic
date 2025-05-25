@@ -19,6 +19,7 @@ void aabb_get_bvh(Traceable* t, struct BVH* bvh);
             .col = c,\
             .name=  n,\
             .intersects = aabb_intersects,\
+            .is_mirror = 0,\
             .get_bounding_extents = aabb_get_bounding_extents,\
             .get_bvh = aabb_get_bvh\
         }) 

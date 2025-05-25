@@ -29,10 +29,12 @@ float sphere_intersects(Ray *r, void *data, Vector3d* normal)
         return -1;
     Vector3d rejected = reject(&base_center, &(r->direction));
     float thc = sqrt(rad * rad - squared_magnitude(&rejected));
-    f32 ret = (magnitude(&rejected) <= rad) * (tca - thc) - !(magnitude(&rejected) <= rad);
+    f32 val = tca - thc;
+    if (val < 0) val = tca + thc;
+    f32 ret = (magnitude(&rejected) <= rad) * val - !(magnitude(&rejected) <= rad);
     if (ret > -1 && normal != NULL)
     {
-        Vector3d hit_point = scale(&r->direction, tca - thc);
+        Vector3d hit_point = scale(&r->direction, val);
         hit_point = add(&hit_point, &r->base);
         *normal = sub(&hit_point, &center);
         *normal = normalise(normal);

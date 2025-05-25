@@ -21,6 +21,7 @@ int vector_equal(Vector3d* v1, Vector3d* v2);
 float get_theta(Vector3d* v1, Vector3d* v2);
 Vector3d normalise(Vector3d* v);
 Vector3d scale(Vector3d* v, float factor);
+Vector3d scale_vector(Vector3d* v, Vector3d* s);
 float squared_magnitude(Vector3d* v1);
 float magnitude(Vector3d* v1);
 void print_vector(Vector3d* v);

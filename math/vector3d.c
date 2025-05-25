@@ -68,6 +68,14 @@ Vector3d scale(Vector3d* v, float factor)
         .z = v->z * factor,
     };
 }
+Vector3d scale_vector(Vector3d* v, Vector3d* s)
+{
+    return (Vector3d){
+        .x = v->x * s->x,
+        .y = v->y * s->y,
+        .z = v->z * s->z,
+    };
+}
 float get_theta(Vector3d* v1, Vector3d* v2)
 {
     return dot(v1, v2) / (magnitude(v1) * magnitude(v2));

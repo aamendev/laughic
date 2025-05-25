@@ -17,4 +17,5 @@
 #include "../../samplers/sampler.h"
 #include "../../colours.h"
 void rect_scene(Canvas* canvas);
+void test_scene(Canvas*);
 #endif

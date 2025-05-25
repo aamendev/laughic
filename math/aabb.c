@@ -44,7 +44,8 @@ float aabb_intersects(Ray* ray, void* data, Vector3d* normal)
 
     t_near = max(t_near, min(t0, t1));
     t_far = min(t_far, max(t0, t1));
-    int cond = (t_far >= max(0.0f, t_near));
+    int cond = (t_far > max(0.0f, t_near));
+    //int cond = (t_far >= 0.0f);
     if (cond && normal != NULL)
     {
         Vector3d c = mid_point(&box->min_coord, &box->max_coord);
@@ -56,13 +57,8 @@ float aabb_intersects(Ray* ray, void* data, Vector3d* normal)
         normal->y = (int)(hit_point.y / unit_map.y * 1.0010f);
         normal->z = (int)(hit_point.z / unit_map.z * 1.0010f);
         *normal = normalise(normal);
-        /*if (normal->y == 0 && normal->z < 0)
-        {
-        printf("NORMAL: ");
-        print_vector(normal);
-        printf("\n");
-        }*/
     }
+    if (t_near < 0) t_near = t_far;
     return t_near * (cond) - !cond;
 }
 void aabb_get_bounding_extents(Traceable* t, Vector3d* min, Vector3d* max)
