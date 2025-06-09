@@ -347,6 +347,7 @@ void general_linear_1d_filter(Canvas* s, i32* h1, u32 s1, FilterDirection fd)
     }
     free(oldCanvas);
 }
+
 void general_linear_separated_filter(Canvas* s, i32* h1, u32 s1, i32* h2, u32 s2)
 {
    general_linear_1d_filter(s, h1, s1, FilterX);
@@ -412,6 +413,286 @@ void jitter_filter(Canvas* s, u32 dim)
 {
     jitter_1d_filter(s, dim, FilterX);
     jitter_1d_filter(s, dim, FilterY);
+}
+
+
+void grey_scale_ordered_dithering(Canvas* s, u8* d, u32 dim)
+{
+    u32 oldCanvas[s->width*s->height];
+    u32 curr_cell = 0;
+    u8 comps[4];
+    f32 intensity;
+
+    for (int i = 0; i < s->width * s->height; i++)
+    {
+        oldCanvas[i] = s->pixels[i];
+    }
+    for (int j = 0; j < s->height - dim; j += dim)
+    {
+        for (int i = 0; i < s->width - dim; i += dim)
+        {
+            for (int v = 0; v < dim; v++)
+            {
+                for (int u = 0; u < dim; u++)
+                {
+                    curr_cell = oldCanvas[(j + v) * (s->width) + i + u];
+                    unpack(comps, &curr_cell);
+                    intensity = 
+                        0.299f * comps[0] + 0.587 * comps[1] + (0.144 * comps[2]);
+                        for (int k = 0; k < 3; k++)
+                        {
+                                comps[k] = 0xff * !(intensity < d[v * dim + u]);
+                        }
+                    comps[3] = 0xff;
+                    s->pixels[(j + v) * (s->width) + (i + u)] = 0;
+                    pack(comps, &(s->pixels[(j + v) * (s->width) + (i + u)]));
+                }
+            }
+        }
+    }
+}
+void ordered_dithering(Canvas* s, u8* d, u32 dim)
+{
+    u32 oldCanvas[s->width*s->height];
+    u32 curr_cell = 0;
+    u8 comps[4];
+
+    for (int i = 0; i < s->width * s->height; i++)
+    {
+        oldCanvas[i] = s->pixels[i];
+    }
+    for (int j = 0; j < s->height - dim; j += dim)
+    {
+        for (int i = 0; i < s->width - dim; i += dim)
+        {
+            for (int v = 0; v < dim; v++)
+            {
+                for (int u = 0; u < dim; u++)
+                {
+                    curr_cell = oldCanvas[(j + v) * (s->width) + i + u];
+                    unpack(comps, &curr_cell);
+                    for (int k = 0; k < 3; k++)
+                    {
+                            comps[k] = 0xff * !(comps[k] < d[v * dim + u]);
+                    }
+                    comps[3] = 0xff;
+                    s->pixels[(j + v) * (s->width) + (i + u)] = 0;
+                    pack(comps, &(s->pixels[(j + v) * (s->width) + (i + u)]));
+                }
+            }
+        }
+    }
+}
+void default_ordered_dithering(Canvas* s)
+{
+    u32 dim = 5;
+    u8* d = malloc(dim * dim * sizeof(u8));
+    for (int i = 0; i < dim * dim; i++)
+    {
+        d[i] = i * 0xff / (dim * dim - 1);
+    }
+    ordered_dithering(s, d, dim);
+    free(d);
+}
+
+void default_grey_scale_ordered_dithering(Canvas* s)
+{
+    u32 dim = 5;
+    u8* d = malloc(dim * dim * sizeof(u8));
+    for (int i = 0; i < dim * dim; i++)
+    {
+        d[i] = i * 0xff / (dim * dim - 1);
+    }
+    grey_scale_ordered_dithering(s, d, dim);
+    free(d);
+}
+
+void grey_scale_floyd_stienberg(Canvas* s, u8* d,u32 length)
+{
+    grey_scale(s);
+    floyd_stienberg(s, d, length);
+}
+void floyd_stienberg(Canvas* s, u8* d, u32 length)
+{
+    u32 curr_cell = 0;
+    u8 comps[4];
+    u8 neighbour_comps[4];
+    f32 err_factors[4] = {7.0f/16, 3.f/16, 5.f/16, 1.f/16};
+    i8 offsets[8] = {1, 0, -1, 1, 0, 1, 1, 1};
+    i16 min_diff[3] = {0xff, 0xff, 0xff};
+    u8 approx[3];
+    i16 curr_diff;
+
+    for (int j = 0; j < s->height - 1; j ++)
+    {
+        for (int i = 1; i < s->width - 1; i++)
+        {
+                    curr_cell = j * (s->width) + i;
+
+                    unpack(comps, &s->pixels[curr_cell]);
+                    for (int k = 0; k < 3; k++)
+                    {
+                        min_diff[k] = 0xff;
+                        approx[k] = 0xff;
+                        for (int l = 0; l < length; l++)
+                        {
+                            curr_diff = (i16)comps[k] - (i16)d[l];
+                            approx[k] = d[l] 
+                                * !(abs(curr_diff) > abs(min_diff[k])) + 
+                                approx[k] 
+                                * (abs(curr_diff) > abs(min_diff[k]));
+
+                            min_diff[k] = curr_diff * 
+                                !(abs(curr_diff) > abs(min_diff[k]))
+                                + min_diff[k] * 
+                                (abs(curr_diff) > abs(min_diff[k]));
+                        }
+                            comps[k] = approx[k];
+                    }
+                    comps[3] = 0xff;
+                    s->pixels[curr_cell] = 0;
+                    pack(comps, &(s->pixels[curr_cell]));
+                    for (int l = 0; l < 8; l+=2)
+                    {
+                        unpack(neighbour_comps, 
+                                &s->pixels[(j + offsets[l + 1])
+                                * s->width + i + offsets[l]]);
+                        for (int y = 0; y < 3; y++)
+                        {
+                            /*i16 test = (i16)neighbour_comps[y]
+                                + err_factors[l/2] * min_diff[y];
+                            if (test > 0)
+                            {
+                            printf("TEST: %d\n", test);
+                            }
+                            */
+                            neighbour_comps[y] = fmax(0, fmin(0xff, 
+                                    (i16)neighbour_comps[y] + 
+                                    err_factors[l/2] * min_diff[y]));
+                        }
+                        neighbour_comps[3] = 0xff;
+                        s->pixels[(j + offsets[l + 1])
+                            * s->width + i + offsets[l]] = 0;
+                        pack(neighbour_comps, 
+                                &s->pixels[(j + offsets[l + 1])
+                                * s->width + i + offsets[l]]);
+                    }
+        }
+    }
+}
+void line_floyd_steinberg(Canvas* s, u8 * d, u32 length, 
+        i32 x_line_offset, i32 y_line_offset,
+        u32 threshold)
+{
+    u32 curr_cell = 0;
+    u8 comps[4];
+    u8 neighbour_comps[4];
+    f32 err_factors[4] = {7.0f/16, 3.f/16, 5.f/16, 1.f/16};
+    i8 offsets[8] = {1, 0, -1, 1, 0, 1, 1, 1};
+    i16 min_diff[3] = {0xff, 0xff, 0xff};
+    u8 approx[3];
+    i16 curr_diff;
+
+    for (int j = 0; j < s->height - 1; j ++)
+    {
+        for (int i = 1; i < s->width - 1; i++)
+        {
+                    curr_cell = j * (s->width) + i;
+
+                    unpack(comps, &s->pixels[curr_cell]);
+                    for (int k = 0; k < 3; k++)
+                    {
+                        min_diff[k] = 0xff;
+                        approx[k] = 0xff;
+                        for (int l = 0; l < length; l++)
+                        {
+                            curr_diff = (i16)comps[k] - (i16)d[l];
+                            approx[k] = d[l] 
+                                * !(abs(curr_diff) > abs(min_diff[k])) + 
+                                approx[k] 
+                                * (abs(curr_diff) > abs(min_diff[k]));
+
+                            min_diff[k] = curr_diff * 
+                                !(abs(curr_diff) > abs(min_diff[k]))
+                                + min_diff[k] * 
+                                (abs(curr_diff) > abs(min_diff[k]));
+                        }
+                            comps[k] = approx[k];
+                    }
+                    comps[3] = 0xff;
+                    int draw_line = (approx[0] >= threshold);
+                    if (draw_line)
+                    {
+                        line(s, i - x_line_offset / 2, j - y_line_offset / 2, 
+                                i + x_line_offset / 2 , j + y_line_offset / 2, 
+                                0xff000000);
+                    for (int k = 0; k < 3; k++)
+                    {
+                        min_diff[k] += 
+                            (fmax(abs(y_line_offset), abs(x_line_offset)) - 1)
+                            * (min_diff[k] >= 0) + 
+                            - (fmax(abs(y_line_offset), abs(x_line_offset))) * (min_diff[k] < 0);
+                    }
+                    }
+                    else 
+                    {
+                        for (int k = 0; k < 3; k++)
+                        {
+                        approx[k] = 0;
+                        min_diff[k] = comps[k];
+                        }
+                    }
+
+                    for (int l = 0; l < 8; l+=2)
+                    {
+                        unpack(neighbour_comps, 
+                                &s->pixels[(j + offsets[l + 1])
+                                * s->width + i + offsets[l]]);
+                        for (int y = 0; y < 3; y++)
+                        {
+                            neighbour_comps[y] = fmax(0, fmin(0xff, 
+                                    (i16)neighbour_comps[y] + 
+                                    err_factors[l/2] * min_diff[y]));
+                        }
+                        neighbour_comps[3] = 0xff;
+                        s->pixels[(j + offsets[l + 1])
+                            * s->width + i + offsets[l]] = 0;
+                        pack(neighbour_comps, 
+                                &s->pixels[(j + offsets[l + 1])
+                                * s->width + i + offsets[l]]);
+                    }
+        }
+    }
+}
+void default_line_floyd_steinberg(Canvas *s, u32 threshold)
+{
+    grey_scale(s);
+    u32 dim = 5;
+    i32 x_off = -10;
+    i32 y_off = 5;
+    u8* d = malloc(dim * sizeof(u8));
+    for (int i = 0; i < dim; i++)
+    {
+        d[i] = i * 0xff / (dim - 1);
+    }
+    line_floyd_steinberg(s, d, dim, x_off, y_off, threshold);
+    free(d);
+}
+void default_grey_scale_floyd_steinberg(Canvas* s)
+{
+    grey_scale(s);
+    default_floyd_steinberg(s);
+}
+void default_floyd_steinberg(Canvas* s)
+{
+    u32 dim = 5;
+    u8* d = malloc(dim * sizeof(u8));
+    for (int i = 0; i < dim; i++)
+    {
+        d[i] = i * 0xff / (dim - 1);
+    }
+    floyd_stienberg(s, d, dim);
+    free(d);
 }
 void median_filter(Canvas* s, u32 dim)
 {

@@ -444,8 +444,49 @@ void filters_showcase(Canvas* c)
     read_to_canvas(c, "./assets/levi.jpg");
     canny_filter(c, 0x02, 0x20);
     save(c, JPG, "./imgs/filters/canny");
+
 }
 
+void npr(Canvas* c)
+{
+    read_to_canvas(c, "./assets/levi.jpg");
+    default_ordered_dithering(c);
+    save(c, JPG, "./imgs/npr/dither");
+    read_to_canvas(c, "./assets/levi.jpg");
+    default_floyd_steinberg(c);
+    save(c, JPG, "./imgs/npr/floyd_stienberg");
+   // default_grey_scale_floyd_steinberg(c);
+    read_to_canvas(c, "./assets/levi.jpg");
+    default_line_floyd_steinberg(c, 70);
+    save(c, JPG, "./imgs/npr/line_floyd_steinberg");
+}
+void npr_test(Canvas* c)
+{
+    read_to_canvas(c, "./assets/ramp");
+    //default_grey_scale_ordered_dithering(c);
+    default_grey_scale_floyd_steinberg(c);
+    save(c, JPG, "./imgs/npr/dither");
+}
+void intensity_ramp(Canvas* c)
+{
+    u8 curr_int;
+    u8 comps[4];
+    u32 current_col = 0;
+    fill(c, BLACK);
+    for (int i = 0; i < c->width; i++)
+    {
+        current_col = 0;
+        curr_int = ((float)i / c->width) * 0xff;
+        for (int j = 0; j < 3; j++)
+        {
+            comps[j] = curr_int;
+        }
+        comps[3] = 0xff;
+        pack(comps, &current_col);
+        line(c, i, 0, i, c->height - 1, current_col);
+    }
+    save(c, JPG, "./assets/ramp");
+}
 void run_exp(Canvas* c)
 {
     init_noise();
@@ -472,6 +513,8 @@ int main()
     srand(time(NULL));
     fill(&canvas, BG);
     //filters_showcase(&canvas);
-    raytrace(&canvas);
+    //raytrace(&canvas);
+    //intensity_ramp(&canvas);
+    npr(&canvas);
     //run_exp(&canvas);
 }

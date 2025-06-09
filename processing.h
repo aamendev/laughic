@@ -1,6 +1,7 @@
 #ifndef PROCESSING_H
 #define PROCESSING_H
 #include "graphics_util.h"
+#include "shapes.h"
 
 // Modifiers
 void mult_contrast(Canvas* c, float val);
@@ -48,4 +49,19 @@ u8 canny_get_orientation(i64 dx, i64 dy);
 u8 canny_is_local_max(u32* mag, u32 w, u32 x, u32 y, u32 orientation, u8 t_lo);
 void canny_trace_contour(u32* maximas, u32* mag,
         u32* contour, u32 w, u32 h, u32 x, u32 y, u8 t_low);
+
+
+// NPR
+void ordered_dithering(Canvas* s, u8* d, u32 dim);
+void grey_scale_ordered_dithering(Canvas* s, u8* d, u32 dim);
+void floyd_stienberg(Canvas* s, u8* d, u32 length);
+void grey_scale_floyd_stienberg(Canvas* s, u8* d, u32 length);
+void line_floyd_steinberg(Canvas* s, u8 * d, u32 length, i32 x_line_offset, i32 y_line_offset, u32 threshold);
+
+// defaults NPR
+void default_ordered_dithering(Canvas* s);
+void default_grey_scale_ordered_dithering(Canvas* s);
+void default_floyd_steinberg(Canvas* s);
+void default_grey_scale_floyd_steinberg(Canvas* s);
+void default_line_floyd_steinberg(Canvas* s, u32 threshold);
 #endif

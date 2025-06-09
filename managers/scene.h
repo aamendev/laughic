@@ -21,6 +21,7 @@ typedef struct SceneData
     int traceable_count;
     Camera* cam;
     int optimized;
+    int max_mirror_depth;
 } SceneData;
 
 typedef struct Scene

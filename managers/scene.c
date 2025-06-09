@@ -1,4 +1,5 @@
 #include "./scene.h"
+#include <assert.h>
 #include <math.h>
 #include <stdio.h>
 #include <float.h>
@@ -244,6 +245,27 @@ void unoptimized_perspective_tracer(SceneData* scene, MaterialData* material)
     free(means);
 }
 
+void print_bvh(struct BVH* bv)
+{
+    struct BVH* b = bv;
+    if (b == NULL) return;
+    Vector3d curr_min;
+    Vector3d curr_max;
+    b->root->get_bounding_extents(b->root, &curr_min, &curr_max);
+    printf("CURRID: %s\n", b->root->name);
+    printf("CURRBOUND: ");
+    print_vector(&curr_min);
+    printf(", ");
+    print_vector(&curr_max);
+    printf("\n");
+    printf("LEFT: \n{\n\t");
+    print_bvh(b->left);
+    printf("\n}");
+    printf("RIGHT: \n{\n\t");
+    print_bvh(b->right);
+    printf("\n}");
+}
+
 void construct_bvh(SceneData* sc, struct BVH* bv)
 {
     struct BVH* bvhs = malloc(sc->traceable_count * sizeof(struct BVH));
@@ -278,13 +300,11 @@ void construct_bvh(SceneData* sc, struct BVH* bv)
 
 void combine_bvh(struct BVH* b0, struct BVH* b1)
 {
-    static int new_id = 5;
-    if (b1 == NULL) return;
-    if (b0 == NULL)
-    {
-        exit(1);
+    static int new_id = 10;
+    if (b1 == NULL || b0 == NULL) {
         printf("SERIOUSERROR!\n");
-    }
+        exit(1);
+    };
     struct BVH* newLeft = malloc(sizeof(struct BVH));
     AABB leftBoundingBox; 
     b0->root->get_bounding_extents(b0->root, 
@@ -310,6 +330,7 @@ void combine_bvh(struct BVH* b0, struct BVH* b1)
     AABB* bounding_box = malloc(sizeof(AABB));
     bounding_box->max_coord = new_max;
     bounding_box->min_coord = new_min;
+    bounding_box->bounding = 1;
 
     Traceable* bounding = malloc(sizeof(Traceable));
     char* name = malloc(30 * sizeof(char));
@@ -347,7 +368,7 @@ void check_bvh_intersection(struct BVH* root, Ray* ray,
         current = stack[count--];
         inter_param = current->root->intersects
             (ray, current->root->data, curr_normal);
-        int cond = (!isnan(inter_param) && inter_param > 0 && inter_param < *currMinVal);
+        int cond = (inter_param > 0 && inter_param < *currMinVal);
         if (cond)
         {
             if (current->left == NULL && current->right == NULL)
@@ -358,12 +379,15 @@ void check_bvh_intersection(struct BVH* root, Ray* ray,
             }
             else 
             {
-                stack[++count] = current->left;
                 stack[++count] = current->right;
+                stack[++count] = current->left;
             }
         }
     }
+    if (*currMin > -1)
+    {
     *curr_normal = min_normal;
+    }
     free(stack);
 }
 void ligh_tracer(SceneData* scene, MaterialData* material)
@@ -398,6 +422,7 @@ void ligh_tracer(SceneData* scene, MaterialData* material)
 
     struct BVH** stack = 
         malloc(scene->traceable_count * sizeof(struct BVH*));
+    int curr_mirror_depth = 0;
 
     for (int j = 0; j < scene->canvas->height; j++)
     {
@@ -413,9 +438,11 @@ void ligh_tracer(SceneData* scene, MaterialData* material)
                 int currMin = -1;
                 float currMinVal = FLT_MAX;
                 Vector3d curr_pos;
-                Vector3d curr_normal;
+                Vector3d curr_normal = {0,0,0};
+                //printf("IN: %d\n", currMin);
             for (int k = 0; k < samples * samples; k++)
             {
+                curr_mirror_depth = 0;
                 Point2D next_sample = scene->sampler->get_next(scene->sampler->data);
                 pp.x = scene->pixelSize * 
                     (i - 0.5 * (scene->canvas->width - 1) + next_sample.x);
@@ -429,16 +456,19 @@ void ligh_tracer(SceneData* scene, MaterialData* material)
                 
                 if (currMin > -1)
                 {
-                    //printf("IN: %d\n", currMin);
                     curr_pos = scale(&scene->ray->direction, currMinVal);
                     curr_pos = add(&curr_pos, &scene->ray->base);
-                    if (scene->traceables[currMin]->is_mirror)
+                    Ray new_ray = *scene->ray;
+                    while (scene->traceables[currMin]->is_mirror)
                     {
-                        Ray new_ray;
+                        if (curr_mirror_depth > scene->max_mirror_depth)
+                        {
+                            goto endSample;
+                        }
+
+                        curr_mirror_depth++;
                         new_ray.base = curr_pos;
-
-                        Vector3d wi = scale(&scene->ray->direction, -1);
-
+                        Vector3d wi = scale(&new_ray.direction, -1);
                         Vector3d swi = scale(&wi, -1);
                         Vector3d scaled_normal = scale(&curr_normal, 
                                 2 * dot(&curr_normal, &wi));
@@ -448,14 +478,14 @@ void ligh_tracer(SceneData* scene, MaterialData* material)
                         check_bvh_intersection(bvh, &new_ray, scene->traceable_count, 
                                &currMin, &currMinVal, &curr_normal);
 
-                        if (currMin > -1 && !scene->traceables[currMin]->is_mirror)
+                        if (currMin > -1)
                         {
                             curr_pos = scale(&new_ray.direction, currMinVal);
                             curr_pos = add(&curr_pos, &new_ray.base);
                         }
                         else 
                         {
-                            continue;
+                            goto endSample;
                         }
                     }
                     means[currMin]++; 
@@ -474,16 +504,45 @@ void ligh_tracer(SceneData* scene, MaterialData* material)
                             scene->traceables[currMin]->ambient.data, NULL);
                     u8 material_amb_comp[4];
                     unpack(material_amb_comp, &amb);
+                    int curr_light_depth = 0;
                     for (int l_index = 0; l_index < material->light_count; l_index++)
                     {
+                        curr_light_depth = 0;
                         l_colour = BLACK;
                         u32 diffuse = BLACK;
                         u32 specular = BLACK;
+
+                        // todo: cone sample
                         ligh_ray = material->lights[l_index].get_rays(&curr_pos, 
                                 material->lights[l_index].data, &count)[0];
                         check_bvh_intersection(bvh, &ligh_ray, 
                                 scene->traceable_count, 
                                 &new_min, &currMinVal, &light_normal);
+
+                        Vector3d l_curr_pos;
+
+                    while (new_min != -1 
+                            && scene->traceables[new_min]->is_mirror
+                            && curr_light_depth <= scene->max_mirror_depth)
+                    {
+                        l_curr_pos = scale(&ligh_ray.direction, currMinVal);
+                        l_curr_pos = add(&l_curr_pos, &ligh_ray.base);
+
+                        curr_light_depth++;
+                        //Ray new_ray;
+                        ligh_ray.base = l_curr_pos;
+
+                        Vector3d wi = scale(&ligh_ray.direction, -1);
+
+                        Vector3d swi = scale(&wi, -1);
+                        Vector3d scaled_normal = scale(&light_normal, 
+                                2 * dot(&light_normal, &wi));
+                        ligh_ray.direction = add(&swi, &scaled_normal);
+                        ligh_ray.direction = normalise(&ligh_ray.direction);
+
+                        check_bvh_intersection(bvh, &ligh_ray, scene->traceable_count, 
+                               &new_min, &currMinVal, &light_normal);
+                    }
 
                         float ndotw = dot(&ligh_ray.direction, &curr_normal);
                         if (ndotw < 0 && new_min == currMin)
@@ -494,7 +553,7 @@ void ligh_tracer(SceneData* scene, MaterialData* material)
                             diffuse = 
                                 scene->traceables[currMin]->
                                 diffuse.f(scene->traceables[currMin]->diffuse.data,
-                                        &scene->ray->direction, &ligh_ray.direction);
+                                        &new_ray.direction, &ligh_ray.direction);
                             GlossySpecularData* sd = 
                                 (GlossySpecularData*) 
                                 scene->traceables[currMin]->specular.data;
@@ -503,7 +562,7 @@ void ligh_tracer(SceneData* scene, MaterialData* material)
                             specular = 
                                 scene->traceables[currMin]->
                                 specular.f(scene->traceables[currMin]->specular.data,
-                                        &scene->ray->direction, &ligh_ray.direction);
+                                        &new_ray.direction, &ligh_ray.direction);
                         }
 
                         unpack(diffuse_comps, &diffuse); 
@@ -525,6 +584,8 @@ void ligh_tracer(SceneData* scene, MaterialData* material)
                     temp_cols[currMin] = 0;
                     pack(c_comps, &temp_cols[currMin]);
                 }
+endSample:
+                {}
             }
             float sum = 0;
             for (int k = 0; k < scene->traceable_count; k++)

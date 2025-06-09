@@ -8,13 +8,20 @@ static void steep_line(Canvas* canvas, int x0, int y0, int x1, int y1, u32 colou
         swap(&x0, &x1);
         swap(&y0, &y1);
     }
+    /*if (y1 > canvas->height - 1 || y0 < 0 
+            || x0 < 0 || x1 < 0 
+            || x0 > canvas->width - 1 
+            || x1 > canvas->width - 1)
+        return;
+        */
     int dx = (x1 - x0) * (x0 < x1) + (x0 - x1) * !(x0 < x1);
     int dy = y1 - y0;
     int d = 2 * dx - dy;
     int j = x0;
     for (int i = y0; i < y1 + 1; i++)
     {
-        mix_colour(&canvas->pixels[i * canvas->width + j] , colour);
+        mix_colour(&canvas->pixels[(i % canvas->height) * canvas->width 
+                + (j % canvas->width)] , colour);
         j += (d > 0 && x0 < x1) - (d > 0 && !(x0 < x1));
         d += 2 * dx - 2 * dy * (d > 0);
     }
@@ -27,13 +34,20 @@ static void shallow_line(Canvas* canvas, int x0, int y0, int x1, int y1, u32 col
         swap(&x0, &x1);
         swap(&y0, &y1);
     }
+   /* if (x1 > canvas->width - 1 || x0 < 0 
+            || y0 < 0 || y1 < 0 
+            || y0 > canvas->height - 1 
+            || y1 > canvas->height - 1)
+        return;
+        */
     int dy = (y1 - y0) * (y0 < y1) + (y0 - y1) * !(y0 < y1);
     int dx = x1 - x0;
     int d = 2 * dy - dx;
     int j = y0;
     for (int i = x0; i < x1 + 1; i++)
     {
-        mix_colour(&canvas->pixels[j * canvas->width + i], colour);
+        mix_colour(&canvas->pixels[(j % canvas->height) * canvas->width +
+                (i % canvas->width)], colour);
         j += (d > 0 && y0 < y1) - (d > 0 && !(y0 < y1));
         d += 2 * dy - 2 * dx * (d > 0);
     }

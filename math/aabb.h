@@ -8,6 +8,7 @@ typedef struct AABB
 {
     Vector3d min_coord;
     Vector3d max_coord;
+    int bounding;
 } AABB;
 float aabb_intersects(Ray* ray, void* data, Vector3d* normal);
 void aabb_get_bounding_extents(Traceable* t, Vector3d* min, Vector3d* max);

@@ -12,38 +12,75 @@ void rect_scene(Canvas* canvas)
     Ray r = {.direction = rayDirection, .base = initPosition};
 
     Sphere s = {.center = {.x = 50, .y = -30, .z = 25}, .r = 20.0f};
-    Sphere mirror_sphere = {.center = {.x = 100, .y = 20, .z = -60}, .r = 50.0f};
+    Sphere mirror_sphere = {.center = {.x = 150, .y = 0, .z = -120}, .r = 100.0f};
+    Sphere mirror_sphere2 = {.center = {.x = -100, .y = 20, .z = -60}, .r = 50.0f};
     AABB floor = 
     {
-        .min_coord = {.x = -200, .y = 101, .z = -200},
-        .max_coord = {.x = 200, .y = 100, .z = 200},
+        .min_coord = {.x = -200, .y = 100, .z = -200},
+        .max_coord = {.x = 200, .y = 101, .z = 200},
+        .bounding = 0,
     };
     AABB mirroraabb = 
     {
-        .min_coord = {.x = -100, .y = -150, .z = -11}, 
-        .max_coord = {.x = 200, .y = 0, .z = -10}
+        .min_coord = {.x = -100, .y = -150, .z = -150}, 
+        .max_coord = {.x = -99, .y = 50, .z = 100},
+        .bounding = 0,
+    };
+    AABB distant = 
+    {
+        .min_coord = {.x = 200, .y = -100, .z = -100}, 
+        .max_coord = {.x = 201, .y = 100, .z = 100},
+        .bounding = 0,
     };
     AABB front = 
-    {
-        .min_coord = {.x = 0, .y = 0, .z = 50}, 
-        .max_coord = {.x = 100, .y = 100, .z = 51}
+    { .min_coord = {.x = 0, .y = 0, .z = 50}, 
+        .max_coord = {.x = 100, .y = 100, .z = 51},
+        .bounding = 0,
     };
     AABB right = 
     {
         .min_coord = {.x = 100, .y = 0, .z = 0},
         .max_coord = {.x = 101, .y = 100, .z = 50}, 
+        .bounding = 0,
     };
     AABB back = 
     {
         .min_coord = {.x = 0, .y = 0, .z = 0}, 
-        .max_coord = {.x = 100, .y = 100, .z = 1}
+        .max_coord = {.x = 100, .y = 100, .z = 1},
+        .bounding = 0,
     };
 
     AABB left = 
     {
         .min_coord = {.x = 0, .y = 0, .z = 0},
         .max_coord = {.x = 1, .y = 100, .z = 50}, 
+        .bounding = 0,
     };
+
+    LambertainData distant_diffuse_data = 
+    {
+        .kd = 0.8f,
+        .cd = BG
+    };
+    BRDF distant_diffuse = LAMBERTAIN_BRDF(&distant_diffuse_data, "distant_diffuse"); 
+    LambertainData distant_ambient_data = 
+    {
+        .kd = 0.2f, .cd = BG
+    };
+
+    BRDF distant_ambient = LAMBERTAIN_BRDF(&distant_ambient_data, "distant_ambient"); 
+    GlossySpecularData distant_specular_data = 
+    {
+        .ks = 0.3f,
+        .cs = BG,
+        .exp = 10,
+    };
+    BRDF distant_specular = GLOSSY_SPECULAR_BRDF(&distant_specular_data, "distant_specular"); 
+
+    Traceable distantTrace = AABB_TRACE(&distant, YELLOW, "bf");
+    distantTrace.specular = distant_specular;
+    distantTrace.diffuse = distant_diffuse;
+    distantTrace.ambient = distant_ambient;
 
     LambertainData front_diffuse_data = 
     {
@@ -53,8 +90,7 @@ void rect_scene(Canvas* canvas)
     BRDF front_diffuse = LAMBERTAIN_BRDF(&front_diffuse_data, "front_diffuse"); 
     LambertainData front_ambient_data = 
     {
-        .kd = 0.2f,
-        .cd = YELLOW
+        .kd = 0.2f, .cd = YELLOW
     };
 
     BRDF front_ambient = LAMBERTAIN_BRDF(&front_ambient_data, "front_ambient"); 
@@ -67,7 +103,7 @@ void rect_scene(Canvas* canvas)
     };
     BRDF front_specular = GLOSSY_SPECULAR_BRDF(&front_specular_data, "front_specular"); 
 
-    Traceable frontTrace = AABB_TRACE(&front, YELLOW, "bf");
+    Traceable frontTrace = AABB_TRACE(&front, YELLOW, "front");
     frontTrace.specular = front_specular;
     frontTrace.diffuse = front_diffuse;
     frontTrace.ambient = front_ambient;
@@ -212,29 +248,39 @@ void rect_scene(Canvas* canvas)
 
     Traceable mirrorTrace = SPHERE_TRACE(&mirror_sphere, CYAN, "ball mirror");
     mirrorTrace.is_mirror = 1;
+
+    Traceable mirrorTrace2 = SPHERE_TRACE(&mirror_sphere2, CYAN, "ball mirror");
+    mirrorTrace2.is_mirror = 1;
     (void)mirrorTrace;
+    (void)mirrorTrace2;
     (void)planeMirrorTrace;
+    (void)distantTrace;
 
 
     Traceable* traceables[20] = 
     {
-        &floorTrace, &frontTrace, &leftTrace, 
-        &rightTrace, &backTrace, 
-        &ballTrace, &mirrorTrace,
+        &rightTrace, 
+        &frontTrace, 
+        &mirrorTrace,
+        &backTrace, 
+        &leftTrace, 
+        &floorTrace, 
+        &ballTrace, 
+        &planeMirrorTrace, 
     };
-    int trace_count = 7;
+    int trace_count = 8;
    // (void)ball;
     PointLight pl = 
     {
         .colour = WHITE,
         .ls = 1.0e5f,
-        .pos = {100, -350, 50}
+        .pos = {100, -350, -50}
     };
 
     AmbientLight amb = 
     {
         .colour = WHITE,
-        .ls = 0.40f
+        .ls = 0.2f
     };
     Light first_pl = POINT_LIGHT(&pl, "fpl");
     Light first_amb = AMBIENT_LIGHT(&amb, "famb");
@@ -242,7 +288,7 @@ void rect_scene(Canvas* canvas)
     int light_count = 1;
 
     SamplerData data = (SamplerData){
-        .sample_count = 4,
+        .sample_count = 5,
         .set_count = 4,
         .used_count = 0,
         .init_index = 0,
@@ -276,6 +322,11 @@ void rect_scene(Canvas* canvas)
         .up = {.x = 0, .y = 1, .z = 0},
         .extra = &p_data,
     };
+    /*Vector3d temp = sub(&cam_data.eye, &cam_data.look_at);
+    temp = normalise(&temp);
+    temp = scale(&temp, 15);
+    cam_data.eye = add(&cam_data.eye, &temp);
+    */
 
     Camera pinhole_cam = PINHOLE(cam_data);
     Camera fisheye_cam = FISH_EYE(cam_data);
@@ -298,6 +349,7 @@ void rect_scene(Canvas* canvas)
         .traceable_count = trace_count,
         .cam = &pinhole_cam,
         .optimized = 1,
+        .max_mirror_depth = 200,
     };
     MaterialData mat_data = 
     {
@@ -329,6 +381,12 @@ void test_scene(Canvas* canvas)
     };
     BRDF ball_diffuse = LAMBERTAIN_BRDF(&ball_diffuse_data, "ball_diffuse"); 
 
+    LambertainData ball_ambient_data = 
+    {
+        .kd = 0.5f, .cd = CYAN
+    };
+    BRDF ball_ambient = LAMBERTAIN_BRDF(&ball_ambient_data, "ball_ambient"); 
+
     GlossySpecularData ball_specular_data = 
     {
         .ks = 0.7f,
@@ -345,13 +403,16 @@ void test_scene(Canvas* canvas)
     Traceable aabtrace = AABB_TRACE(&bounding, RED, "cr");
     ballTrace.specular = ball_specular;
     ballTrace.diffuse = ball_diffuse;
+    ballTrace.ambient = ball_ambient;
     aabtrace.specular = ball_specular;
     aabtrace.diffuse = ball_diffuse;
+    aabtrace.ambient = ball_ambient;
 
     (void)aabtrace;
+    (void)ballTrace;
     Traceable* traceables[20] = 
     {
-        &ballTrace,
+        &aabtrace,
     };
     int trace_count = 1;
    // (void)ball;
@@ -365,7 +426,7 @@ void test_scene(Canvas* canvas)
     AmbientLight amb = 
     {
         .colour = WHITE,
-        .ls = 0.0f
+        .ls = 1.0f
     };
     Light first_pl = POINT_LIGHT(&pl, "fpl");
     Light first_amb = AMBIENT_LIGHT(&amb, "famb");
@@ -385,8 +446,8 @@ void test_scene(Canvas* canvas)
 
     CameraData cam_data = (CameraData)
     {
-        .eye = {.x =  s.center.x, .y = s.center.y, .z = s.center.z},
-        .look_at = {.x = s.center.x, .y = s.center.y, .z = s.center.z + 1},
+        .eye = {.x =  s.center.x, .y = s.center.y, .z = s.center.z - s.r * 0.99f},
+        .look_at = {.x = s.center.x, .y = s.center.y, .z = s.center.z},
         .up = {.x = 0, .y = 1, .z = 0},
         .extra = &p_data,
     };
@@ -405,10 +466,11 @@ void test_scene(Canvas* canvas)
         .traceable_count = trace_count,
         .cam = &pinhole_cam,
         .optimized = 1,
+        .max_mirror_depth = 0,
     };
     MaterialData mat_data = 
     {
-        .ambient_light = NULL,
+        .ambient_light = &lights[1],
         .lights = &lights[0],
         .light_count = light_count
     };
