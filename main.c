@@ -508,6 +508,88 @@ void run_exp(Canvas* c)
     free(data);
     save(c, JPG, "./imgs/experiments/noise");
 }
+
+void curve_exp(Canvas* c)
+{
+    int offsetx = -c->width/4;
+    int offsety = 0 * c->height/4;
+    ParametricCubic2D pc0 = 
+    {
+        {
+            .x = c->width / 2 + offsetx,
+            .y = c->height / 2 + offsety,
+            },
+        .ax = 100.0f,
+        .bx = 100.0f,
+        .cx = 100.0f,
+        .dx = 100.0f,
+        .ay = 0.0f,
+        .by = 0.0f,
+        .cy = -100.0f,
+        .dy = -100.0f,
+        .seg_num = 1e5,
+    };
+    parametric_cubic(c, &pc0, RED);
+    pc0.cy *= -1;
+    pc0.dy *= -1;
+    parametric_cubic(c, &pc0, YELLOW);
+
+    int spline_offset_x = c->width / 8;
+    int spline_offset_y = c->height / 8;
+    float xcoffs[6] = 
+    {
+        c->width / 4, 
+        c->width / 2 - spline_offset_x,
+        c->width / 2 + spline_offset_x,
+        (3 * c->width) / 4,
+        c->width / 2,
+        c->width / 2 - 2 * spline_offset_x,
+    };
+
+    float ycoffs[6] = 
+    {
+        c->height / 2, 
+        c->height / 4 + spline_offset_y,
+        c->height / 2, 
+        c->height / 4 + 2 * spline_offset_y,
+        c->height / 4 + spline_offset_y,
+        c->height / 4 + 2 * spline_offset_y,
+    };
+#if 0
+    for (int i = 0; i < 4; i++)
+    {
+        xcoffs[i] /= 2;
+        ycoffs[i] /= 2.0f;
+    }
+#endif
+    //float knots[8] = {0.0f, 0.2f, 0.5f, 0.7f, 1.0f};
+    float knots[14] = {
+        0,
+        0.111f,
+        0.222f,
+        0.333f,
+        0.444f,
+        0.556f,
+        0.667f,
+        0.778,
+        0.889,
+        1.0f,
+    };
+    BSpline test_spline = 
+    {
+        .x_coeffs = xcoffs,
+        .y_coeffs = ycoffs,
+        .coeffs_count= 6,
+        .seg_count = 1e3,
+        .knots = knots,
+        .knot_count = 10,
+        .order = 4,
+    };
+    
+    bspline(c, &test_spline, BLUE);
+
+    save(c, JPG, "./imgs/curves/curve");
+}
 int main()
 {
     srand(time(NULL));
@@ -515,6 +597,7 @@ int main()
     //filters_showcase(&canvas);
     //raytrace(&canvas);
     //intensity_ramp(&canvas);
-    npr(&canvas);
+    //npr(&canvas);
+    curve_exp(&canvas);
     //run_exp(&canvas);
 }

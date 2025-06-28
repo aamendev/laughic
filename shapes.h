@@ -3,6 +3,11 @@
 #ifndef SHAPESH
 #define SHAPESH
 
+typedef struct Point
+{
+    int x;
+    int y;
+} Point;
 typedef struct Line
 {
     int x0;
@@ -49,6 +54,31 @@ typedef struct Triangle
     u32 colour;
 } Triangle;
 
+typedef struct ParametricCubic2D
+{
+    Point p0;
+    float ax;
+    float bx;
+    float cx;
+    float dx;
+    float ay;
+    float by;
+    float cy;
+    float dy;
+    int seg_num;
+} ParametricCubic2D;
+
+typedef struct BSpline
+{
+    float* knots;
+    int order;
+    int knot_count;
+    float* x_coeffs;
+    float* y_coeffs;
+    int coeffs_count;
+    int seg_count;
+} BSpline;
+
 
 typedef enum Shape
 {
@@ -81,6 +111,17 @@ void triangle(Canvas* canvas, int x0, int y0, int x1, int y1, int x2, int y2, u3
 void fill_triangle(Canvas* canvas, int x1, int y1, int x2, int y2, int x3, int y3, u32 color);
 void fill_triangle_texture(Canvas* canvas, int x1, int y1, int x2, int y2, int x3, int y3, Texture* tex, int u0, int v0, int u1, int v1, int u2, int v2);
 void fill_triangle_bary(Canvas* canvas, int x1, int y1, int x2, int y2, int x3, int y3, u32 c1, u32 c2, u32 c3);
+
+void old_parametric_cubic(Canvas* canvas, 
+        int x0, int y0,
+        float a0, float b0, float c0, float d0,
+        float a1, float b1, float c1, float d1,
+        int seg_num,
+        u32 colour
+        );
+
+void parametric_cubic(Canvas* canvas, ParametricCubic2D* pc2, u32 colour);
+void bspline(Canvas* canvas, BSpline* bsp, u32 colour);
 
 //void fill(Canvas* canvas, Shape type, void* shape);
 

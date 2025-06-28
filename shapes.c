@@ -596,6 +596,170 @@ void fill_triangle_texture(Canvas* canvas, int x0, int y0, int x1, int y1, int x
     }
 }
 
+
+void old_parametric_cubic(Canvas* canvas, 
+        int x0, int y0,
+        float a0, float b0, float c0, float d0,
+        float a1, float b1, float c1, float d1,
+        int seg_num,
+        u32 colour
+        )
+{
+    float step_size = 1.0f / seg_num;
+    float curr_x0 = d0 + x0;
+    float curr_x1 = 0;
+
+    float dx0 = 
+        c0 * step_size + 
+        b0 * step_size * step_size +
+        a0 * step_size * step_size * step_size;
+    float dx1 = 
+        2 * b0 * step_size * step_size + 
+        6 * a0 * step_size * step_size * step_size;
+    float dx2 = 
+        6 * a0 * step_size * step_size * step_size;
+
+    float curr_y0 = d1 + y0;
+    float curr_y1 = 0;
+
+    float dy0 = 
+        c1 * step_size + 
+        b1 * step_size * step_size +
+        a1 * step_size * step_size * step_size;
+    float dy1 = 
+        2 * b1 * step_size * step_size + 
+        6 * a1 * step_size * step_size * step_size;
+    float dy2 = 
+        6 * a1 * step_size * step_size * step_size;
+    
+    for (int i = 0; i <= seg_num; i++)
+    {
+        curr_x1 = curr_x0 + dx0;
+        dx0 += dx1;
+        dx1 += dx2;
+
+        curr_y1 = curr_y0 + dy0; 
+        dy0 += dy1;
+        dy1 += dy2;
+        
+        line(canvas, curr_x0, curr_y0, curr_x1, curr_y1, colour);
+        curr_x0 = curr_x1;
+        curr_y0 = curr_y1;
+    }
+}
+void parametric_cubic(Canvas* canvas, ParametricCubic2D* pc2, u32 colour)
+{
+    float step_size = 1.0f / pc2->seg_num;
+    float curr_x0 = pc2->dx + pc2->p0.x;
+    float curr_x1 = 0;
+
+    float dx0 = 
+        pc2->cx * step_size + 
+        pc2->bx * step_size * step_size +
+        pc2->ax * step_size * step_size * step_size;
+    float dx1 = 
+        2 * pc2->bx * step_size * step_size + 
+        6 * pc2->ax * step_size * step_size * step_size;
+    float dx2 = 
+        6 * pc2->ax * step_size * step_size * step_size;
+
+    float curr_y0 = pc2->dy + pc2->p0.y;
+    float curr_y1 = 0;
+
+    float dy0 = 
+        pc2->cy * step_size + 
+        pc2->by * step_size * step_size +
+        pc2->ay * step_size * step_size * step_size;
+    float dy1 = 
+        2 * pc2->by * step_size * step_size + 
+        6 * pc2->ay * step_size * step_size * step_size;
+    float dy2 = 
+        6 * pc2->ay * step_size * step_size * step_size;
+    
+    for (int i = 0; i <= pc2->seg_num; i++)
+    {
+        curr_x1 = curr_x0 + dx0;
+        dx0 += dx1;
+        dx1 += dx2;
+
+        curr_y1 = curr_y0 + dy0; 
+        dy0 += dy1;
+        dy1 += dy2;
+        
+        line(canvas, curr_x0, curr_y0, curr_x1, curr_y1, colour);
+        curr_x0 = curr_x1;
+        curr_y0 = curr_y1;
+    }
+}
+
+void bspline(Canvas* canvas, BSpline* bsp, u32 colour)
+{
+    int delta = bsp->order- 1;
+    int draw = 0;
+    int i = 0;
+    float omega;
+    Point p0 = {0, 0};
+    Point p1 = {0, 0};
+    float u = 0.0f;
+    float* x_coeffs_copy = malloc(bsp->coeffs_count * sizeof(float));
+    float* y_coeffs_copy = malloc(bsp->coeffs_count * sizeof(float));
+
+    float inc = 
+        (bsp->knots[bsp->coeffs_count] - bsp->knots[bsp->order - 1])
+        / bsp->seg_count;
+
+    for (u = bsp->knots[bsp->order - 1]; u < bsp->knots[bsp->coeffs_count]; u+=inc)
+    {
+        for (int j = 0; j < bsp->order; j++)
+        {
+            x_coeffs_copy[j] = bsp->x_coeffs[delta - j];
+            y_coeffs_copy[j] = bsp->y_coeffs[delta - j];
+        }
+        for (int j = bsp->order; j < delta + 1; j++)
+        {
+            x_coeffs_copy[j] = 0;
+            y_coeffs_copy[j] = 0;
+        }
+        delta += (u >= bsp->knots[delta + 1]);
+        for (int r = bsp->order; r >= 2; r--)
+        {
+            i = delta;
+            for (int s = 0; s <= r-2; s++)
+            {
+                omega = 0;
+                float diff = bsp->knots[i+r - 1] - bsp->knots[i];
+                if (diff != 0)
+                {
+                omega =
+                    (u - bsp->knots[i]) / 
+                    (diff);
+                }
+                x_coeffs_copy[s] = 
+                    (omega) * x_coeffs_copy[s] + 
+                    (1-omega) * x_coeffs_copy[s+1];
+
+                y_coeffs_copy[s] = 
+                    (omega) * y_coeffs_copy[s] + 
+                    (1-omega) * y_coeffs_copy[s+1];
+
+                i--;
+            }
+        }
+        p1.x = x_coeffs_copy[0];
+        p1.y = y_coeffs_copy[0];
+        if (draw > 3)
+        {
+            printf("start line: %d, %d, %d, %d\n",
+                    p0.x, p0.y, p1.x, p1.y);
+            line(canvas, p0.x, p0.y, p1.x, p1.y, colour);
+        }
+        p0 = p1;
+        draw++;
+    }
+    //free(x_coeffs_copy);
+    //free(y_coeffs_copy);
+}
+
 /*void fill(Canvas* canvas, Shape type, void* shape)
 {
     switch(shape)
