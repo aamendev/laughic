@@ -53,6 +53,10 @@ void julia(Canvas* canvas, u16 iterations, float zx, float zy, u32 bg);
 void newton(Canvas* canvas, u16 iterations, u32 base_colour);
 void newton2(Canvas* cavnas, u16 iterations, void (*func)(float, float, float*, float*), void (*deri)(float, float, float*, float*), float* roots, u16 nRoots);
 
+// Per Colour Operations
+void set_opacity(u32* col, u8 val);
+void set_channel(u32* col, u8 val, Channel channel);
+u8 get_channel(u32* col, Channel channel);
 
 // Signed
 

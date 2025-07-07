@@ -8,13 +8,18 @@ typedef struct Point
     int x;
     int y;
 } Point;
+typedef struct SimpleBrush
+{
+    u32 r;
+    u32 colour;
+} SimpleBrush;
+
 typedef struct Line
 {
     int x0;
     int y0;
     int x1;
     int y1;
-    u32 colour;
 } Line;
 
 typedef struct Circle
@@ -92,6 +97,7 @@ typedef enum Shape
 void point(Canvas* canvas, int x, int y, u32 colour);
 void line_old(Canvas* canvas, int x0, int y0, int x1, int y1, u32 colour);
 void line(Canvas* canvas, int x0, int y0, int x1, int y1, u32 colour);
+void new_line(Canvas* c, Line* l, SimpleBrush* b);
 
 void fill(Canvas* canvas, u32 colour);
 
@@ -122,6 +128,10 @@ void old_parametric_cubic(Canvas* canvas,
 
 void parametric_cubic(Canvas* canvas, ParametricCubic2D* pc2, u32 colour);
 void bspline(Canvas* canvas, BSpline* bsp, u32 colour);
+void bspline_modify(Canvas* canvas, BSpline* bsp, SimpleBrush* b, void* opts,
+        void(*modify)(Canvas* c, BSpline* bsp, float u, Line* l, SimpleBrush* b, void* opts));
+void bspeline_wiggle(Canvas* canvas, BSpline* bsp, SimpleBrush* b);
+
 
 //void fill(Canvas* canvas, Shape type, void* shape);
 

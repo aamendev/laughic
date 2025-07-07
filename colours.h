@@ -15,4 +15,6 @@
 #define PALE_BLUE 0xff800000
 #define PALE_RED 0xff000080
 #define PALE_GREEN 0xff008000
+
+#define CUSTOM1 (0xff414181)
 #endif

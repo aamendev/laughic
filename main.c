@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include "./bspline_modify_util.h"
 //#include <errno.h>
 #include <stdint.h>
 #include <string.h>
@@ -447,6 +448,119 @@ void filters_showcase(Canvas* c)
 
 }
 
+void npr_curve(Canvas* c)
+{
+    int spline_offset_x = c->width / 8;
+    int spline_offset_y = c->height / 8;
+    float xcoffs[6] = 
+    {
+        c->width / 4, 
+        c->width / 2 - spline_offset_x,
+        c->width / 2 + spline_offset_x,
+        (3 * c->width) / 4,
+        c->width / 2,
+        c->width / 2 - 2 * spline_offset_x,
+    };
+
+    float ycoffs[6] = 
+    {
+        c->height / 2, 
+        c->height / 4 + spline_offset_y,
+        c->height / 2, 
+        c->height / 4 + 2 * spline_offset_y,
+        c->height / 4 + spline_offset_y,
+        c->height / 4 + 2 * spline_offset_y,
+    };
+    float knots[14] = {
+        0,
+        0.111f,
+        0.222f,
+        0.333f,
+        0.444f,
+        0.556f,
+        0.667f,
+        0.778,
+        0.889,
+        1.0f,
+    };
+    BSpline test_spline = 
+    {
+        .x_coeffs = xcoffs,
+        .y_coeffs = ycoffs,
+        .coeffs_count= 6,
+        .seg_count = 1e3,
+        .knots = knots,
+        .knot_count = 10,
+        .order = 4,
+    };
+
+    SimpleBrush sb = 
+    {
+        .colour = BLUE,
+        .r = 1
+    };
+    Channel curr_channel = ChannelAlpha;
+    bspline_modify(c, &test_spline, &sb, &curr_channel, bspline_channel_modify);
+
+    for (int i = 0; i < test_spline.coeffs_count; i++)
+    {
+       test_spline.y_coeffs[i] += 100; 
+    }
+
+    RadiusOpt rad_opt =
+    {
+        .min_r = 1,
+        .max_r = 5
+    };
+
+    bspline_modify(c, &test_spline, &sb, &rad_opt, bspline_width_modify);
+
+    for (int i = 0; i < test_spline.coeffs_count; i++)
+    {
+       test_spline.y_coeffs[i] += 100; 
+    }
+    sb.colour = GREEN;
+
+    RadiusColOpt rad_col_opt = 
+    {
+        rad_opt,
+        ChannelRed
+    };
+    //bspline_channel_smooth(c, &test_spline, GREEN, ChannelRed);
+    bspline_modify(c, &test_spline, &sb, &rad_col_opt, bspline_channel_width_modify);
+
+    sb.colour = RED;
+    sb.r = 1;
+    SimpleWiggleOpt s_wiggle_opt = 
+    {
+        .min_wiggle = -3,
+        .max_wiggle = 3,
+        .prob = 20,
+    };
+
+    for (int i = 0; i < test_spline.coeffs_count; i++)
+    {
+       test_spline.y_coeffs[i] += 100; 
+    }
+    bspline_modify(c, &test_spline, &sb, &s_wiggle_opt, bspline_simple_wiggle_modify);
+
+    for (int i = 0; i < test_spline.coeffs_count; i++)
+    {
+       test_spline.y_coeffs[i] -= 500; 
+    }
+
+    SimpleRangeWiggleOpt s_range_wiggle_opt = 
+    {
+        .min_wiggle = -3,
+        .max_wiggle = 3,
+        .prob = 5,
+        .min_u = 0.45f,
+        .max_u = 0.55f,
+    };
+    bspline_modify(c, &test_spline, &sb, &s_range_wiggle_opt, bspline_simple_range_wiggle_modify);
+
+    save(c, JPG, "./imgs/npr/curve2");
+}
 void npr(Canvas* c)
 {
     read_to_canvas(c, "./assets/levi.jpg");
@@ -555,14 +669,6 @@ void curve_exp(Canvas* c)
         c->height / 4 + spline_offset_y,
         c->height / 4 + 2 * spline_offset_y,
     };
-#if 0
-    for (int i = 0; i < 4; i++)
-    {
-        xcoffs[i] /= 2;
-        ycoffs[i] /= 2.0f;
-    }
-#endif
-    //float knots[8] = {0.0f, 0.2f, 0.5f, 0.7f, 1.0f};
     float knots[14] = {
         0,
         0.111f,
@@ -595,9 +701,10 @@ int main()
     srand(time(NULL));
     fill(&canvas, BG);
     //filters_showcase(&canvas);
-    //raytrace(&canvas);
+    raytrace(&canvas);
     //intensity_ramp(&canvas);
     //npr(&canvas);
-    curve_exp(&canvas);
+    //curve_exp(&canvas);
+ //   npr_curve(&canvas);
     //run_exp(&canvas);
 }

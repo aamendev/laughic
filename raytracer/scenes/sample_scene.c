@@ -349,7 +349,7 @@ void rect_scene(Canvas* canvas)
         .traceable_count = trace_count,
         .cam = &pinhole_cam,
         .optimized = 1,
-        .max_mirror_depth = 200,
+        .max_mirror_depth = 10,
     };
     MaterialData mat_data = 
     {

@@ -10,7 +10,7 @@ typedef struct Light
    void* data;
    char* name;
    Ray* (*get_rays)(Vector3d* in_position, void* data, u32* count);
-   u32 (*get_radiance)(Vector3d* in_position, void* data);
+   u32 (*get_radiance)(Vector3d* in_position, void* data, float old_dist);
 }Light;
 
 typedef struct MaterialData

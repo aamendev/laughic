@@ -271,3 +271,25 @@ i8 compare_with_comps(u32 c, u8 t)
     }
     return notEqual;
 }
+
+
+void set_channel(u32* col, u8 val, Channel channel)
+{
+    u8 comps[4] = {0, 0, 0, 0};
+    unpack(comps, col);
+    comps[channel] = val;
+    *col = 0;
+    pack(comps, col);
+}
+
+
+void set_opacity(u32 *col, u8 val)
+{
+    set_channel(col, val, ChannelAlpha);
+}
+u8 get_channel(u32* col, Channel channel)
+{
+    u8 comps[4];
+    unpack(comps, col);
+    return comps[channel];
+}

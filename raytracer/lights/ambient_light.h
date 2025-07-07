@@ -8,7 +8,7 @@ typedef struct AmbientLight
 } AmbientLight;
 
 Ray* amb_get_rays(Vector3d* in_position, void* data, u32* count);
-u32 amb_get_radiance(Vector3d* in_position, void* data);
+u32 amb_get_radiance(Vector3d* in_position, void* data, float old_dist);
 #define AMBIENT_LIGHT(s, n) ((Light)\
         {\
         .data = s,\

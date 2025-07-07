@@ -392,8 +392,9 @@ void check_bvh_intersection(struct BVH* root, Ray* ray,
 }
 void ligh_tracer(SceneData* scene, MaterialData* material)
 {
+    const float nudge_val = 0.001f;
     u32 ambient_colour = material->ambient_light->get_radiance(NULL, 
-            material->ambient_light->data);
+            material->ambient_light->data, 0);
     u8 ambient_comp[4];
     unpack(ambient_comp, &ambient_colour);
 
@@ -453,6 +454,7 @@ void ligh_tracer(SceneData* scene, MaterialData* material)
                 check_bvh_intersection(
                         bvh, scene->ray, scene->traceable_count, 
                         &currMin, &currMinVal, &curr_normal);
+                currMinVal -= nudge_val;
                 
                 if (currMin > -1)
                 {
@@ -478,6 +480,7 @@ void ligh_tracer(SceneData* scene, MaterialData* material)
                         check_bvh_intersection(bvh, &new_ray, scene->traceable_count, 
                                &currMin, &currMinVal, &curr_normal);
 
+                        currMinVal -= nudge_val;
                         if (currMin > -1)
                         {
                             curr_pos = scale(&new_ray.direction, currMinVal);
@@ -518,15 +521,20 @@ void ligh_tracer(SceneData* scene, MaterialData* material)
                         check_bvh_intersection(bvh, &ligh_ray, 
                                 scene->traceable_count, 
                                 &new_min, &currMinVal, &light_normal);
+                        currMinVal -= nudge_val;
 
                         Vector3d l_curr_pos;
 
+                        float curr_light_dist = 0.0f;
                     while (new_min != -1 
                             && scene->traceables[new_min]->is_mirror
                             && curr_light_depth <= scene->max_mirror_depth)
                     {
                         l_curr_pos = scale(&ligh_ray.direction, currMinVal);
                         l_curr_pos = add(&l_curr_pos, &ligh_ray.base);
+
+                        Vector3d diff = sub(&l_curr_pos, &ligh_ray.base);
+                        curr_light_dist += magnitude(&diff);
 
                         curr_light_depth++;
                         //Ray new_ray;
@@ -542,6 +550,7 @@ void ligh_tracer(SceneData* scene, MaterialData* material)
 
                         check_bvh_intersection(bvh, &ligh_ray, scene->traceable_count, 
                                &new_min, &currMinVal, &light_normal);
+                        currMinVal -= nudge_val;
                     }
 
                         float ndotw = dot(&ligh_ray.direction, &curr_normal);
@@ -549,7 +558,7 @@ void ligh_tracer(SceneData* scene, MaterialData* material)
                         {
                             l_colour =
                                 material->lights[l_index].get_radiance(&curr_pos,
-                                        material->lights[l_index].data);
+                                        material->lights[l_index].data, curr_light_dist);
                             diffuse = 
                                 scene->traceables[currMin]->
                                 diffuse.f(scene->traceables[currMin]->diffuse.data,
@@ -577,6 +586,7 @@ void ligh_tracer(SceneData* scene, MaterialData* material)
                             fac += ((f32)ambient_comp[cc] / 0xff) * 
                                 (f32)material_amb_comp[cc] / 0xff;
 
+                            //c_comps[cc] = fmin(0xff, (u16)c_comps[cc] + (u16)(fac * 0xff));
                             c_comps[cc] = fmin(0xff, (u16)c_comps[cc] + (u16)(fac * 0xff));
                         }
                     }

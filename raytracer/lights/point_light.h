@@ -12,7 +12,7 @@ typedef struct PointLight
 } PointLight;
 
 Ray* pl_get_rays(Vector3d* in_position, void* data, u32* count);
-u32 pl_get_radiance(Vector3d* in_position, void* data);
+u32 pl_get_radiance(Vector3d* in_position, void* data, float old_dist);
 #define POINT_LIGHT(s, n) ((Light)\
         {\
         .data = s,\

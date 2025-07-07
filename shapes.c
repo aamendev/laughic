@@ -1,4 +1,5 @@
 #include "./shapes.h"
+#include "logic_util.h"
 #include <stdio.h>
 
 static void steep_line(Canvas* canvas, int x0, int y0, int x1, int y1, u32 colour)
@@ -26,6 +27,36 @@ static void steep_line(Canvas* canvas, int x0, int y0, int x1, int y1, u32 colou
         d += 2 * dx - 2 * dy * (d > 0);
     }
 }
+static void new_steep_line(Canvas* canvas, Line* l, SimpleBrush* b)
+{
+
+    int x0 = l->x0;
+    int x1 = l->x1;
+    int y0 = l->y0;
+    int y1 = l->y1;
+    if (y0 > y1)
+    {
+        swap(&x0, &x1);
+        swap(&y0, &y1);
+    }
+    /*if (y1 > canvas->height - 1 || y0 < 0 
+            || x0 < 0 || x1 < 0 
+            || x0 > canvas->width - 1 
+            || x1 > canvas->width - 1)
+        return;
+        */
+    int dx = (x1 - x0) * (x0 < x1) + (x0 - x1) * !(x0 < x1);
+    int dy = y1 - y0;
+    int d = 2 * dx - dy;
+    int j = x0;
+    for (int i = y0; i < y1 + 1; i++)
+    {
+        fill_circle(canvas, (j % canvas->width),
+                i % canvas->height, b->r, b->colour);
+        j += (d > 0 && x0 < x1) - (d > 0 && !(x0 < x1));
+        d += 2 * dx - 2 * dy * (d > 0);
+    }
+}
 
 static void shallow_line(Canvas* canvas, int x0, int y0, int x1, int y1, u32 colour)
 {
@@ -34,12 +65,7 @@ static void shallow_line(Canvas* canvas, int x0, int y0, int x1, int y1, u32 col
         swap(&x0, &x1);
         swap(&y0, &y1);
     }
-   /* if (x1 > canvas->width - 1 || x0 < 0 
-            || y0 < 0 || y1 < 0 
-            || y0 > canvas->height - 1 
-            || y1 > canvas->height - 1)
-        return;
-        */
+   
     int dy = (y1 - y0) * (y0 < y1) + (y0 - y1) * !(y0 < y1);
     int dx = x1 - x0;
     int d = 2 * dy - dx;
@@ -48,6 +74,31 @@ static void shallow_line(Canvas* canvas, int x0, int y0, int x1, int y1, u32 col
     {
         mix_colour(&canvas->pixels[(j % canvas->height) * canvas->width +
                 (i % canvas->width)], colour);
+        j += (d > 0 && y0 < y1) - (d > 0 && !(y0 < y1));
+        d += 2 * dy - 2 * dx * (d > 0);
+    }
+}
+static void new_shallow_line(Canvas* canvas, Line* l, SimpleBrush* b)
+{
+
+    int x0 = l->x0;
+    int x1 = l->x1;
+    int y0 = l->y0;
+    int y1 = l->y1;
+    if (x0 > x1)
+    {
+        swap(&x0, &x1);
+        swap(&y0, &y1);
+    }
+   
+    int dy = (y1 - y0) * (y0 < y1) + (y0 - y1) * !(y0 < y1);
+    int dx = x1 - x0;
+    int d = 2 * dy - dx;
+    int j = y0;
+    for (int i = x0; i < x1 + 1; i++)
+    {
+        fill_circle(canvas, (i % canvas->width),
+                j % canvas->height, b->r, b->colour);
         j += (d > 0 && y0 < y1) - (d > 0 && !(y0 < y1));
         d += 2 * dy - 2 * dx * (d > 0);
     }
@@ -71,6 +122,30 @@ void line(Canvas* canvas, int x0, int y0, int x1, int y1, u32 colour)
     {
         steep_line(canvas,x0,y0,x1,y1,colour);
     }
+}
+
+void new_line(Canvas *c, Line *l, SimpleBrush *b)
+{
+    int dy = (l->y1 - l->y0) * (l->y0 < l->y1) + 
+        (l->y0 - l->y1) * !(l->y0 < l->y1);
+    int dx = (l->x1 - l->x0) * (l->x0 < l->x1) + 
+        (l->x0 - l->x1) * !(l->x0 < l->x1);
+
+    if (dy < dx)
+    {
+        new_shallow_line(c, l, b);
+        //shallow_line(c,l->x0,l->y0,
+         //       l->x1,l->y1,b->colour);
+    }
+
+    else
+    {
+        //steep_line(c,l->x0,l->y0,
+         //       l->x1,l->y1,b->colour);
+        new_steep_line(c, l, b);
+    }
+    (void)new_shallow_line;
+    (void)new_steep_line;
 }
 
 void line_old(Canvas* canvas, int x0, int y0, int x1, int y1, u32 colour)
@@ -710,6 +785,7 @@ void bspline(Canvas* canvas, BSpline* bsp, u32 colour)
 
     for (u = bsp->knots[bsp->order - 1]; u < bsp->knots[bsp->coeffs_count]; u+=inc)
     {
+        delta += (u >= bsp->knots[delta + 1]);
         for (int j = 0; j < bsp->order; j++)
         {
             x_coeffs_copy[j] = bsp->x_coeffs[delta - j];
@@ -720,7 +796,6 @@ void bspline(Canvas* canvas, BSpline* bsp, u32 colour)
             x_coeffs_copy[j] = 0;
             y_coeffs_copy[j] = 0;
         }
-        delta += (u >= bsp->knots[delta + 1]);
         for (int r = bsp->order; r >= 2; r--)
         {
             i = delta;
@@ -728,7 +803,7 @@ void bspline(Canvas* canvas, BSpline* bsp, u32 colour)
             {
                 omega = 0;
                 float diff = bsp->knots[i+r - 1] - bsp->knots[i];
-                if (diff != 0)
+                if (diff > 0)
                 {
                 omega =
                     (u - bsp->knots[i]) / 
@@ -747,18 +822,181 @@ void bspline(Canvas* canvas, BSpline* bsp, u32 colour)
         }
         p1.x = x_coeffs_copy[0];
         p1.y = y_coeffs_copy[0];
-        if (draw > 3)
+        // 333
+        if (draw > 0)
         {
-            printf("start line: %d, %d, %d, %d\n",
-                    p0.x, p0.y, p1.x, p1.y);
             line(canvas, p0.x, p0.y, p1.x, p1.y, colour);
         }
         p0 = p1;
         draw++;
     }
-    //free(x_coeffs_copy);
-    //free(y_coeffs_copy);
+    free(x_coeffs_copy);
+    free(y_coeffs_copy);
 }
+
+void bspline_modify(Canvas* canvas, BSpline* bsp, SimpleBrush* b, void* opts,
+        void (*modify) (Canvas* c, BSpline* bsp, float u, Line*, SimpleBrush* b, void* opts))
+{
+    int delta = bsp->order- 1;
+    int draw = 0;
+    int i = 0;
+    float omega;
+    Point p0 = {0, 0};
+    Point p1 = {0, 0};
+    float u = 0.0f;
+    float* x_coeffs_copy = malloc(bsp->coeffs_count * sizeof(float));
+    float* y_coeffs_copy = malloc(bsp->coeffs_count * sizeof(float));
+
+    float inc = 
+        (bsp->knots[bsp->coeffs_count] - bsp->knots[bsp->order - 1])
+        / bsp->seg_count;
+
+    Line l = 
+    {
+        .x0 = p0.x,
+        .y0 = p0.y,
+        .x1 = p1.x,
+        .y1 = p1.y,
+    };
+    for (u = bsp->knots[bsp->order - 1]; u < bsp->knots[bsp->coeffs_count]; u+=inc)
+    {
+        delta += (u >= bsp->knots[delta + 1]);
+        for (int j = 0; j < bsp->order; j++)
+        {
+            x_coeffs_copy[j] = bsp->x_coeffs[delta - j];
+            y_coeffs_copy[j] = bsp->y_coeffs[delta - j];
+        }
+        for (int j = bsp->order; j < delta + 1; j++)
+        {
+            x_coeffs_copy[j] = 0;
+            y_coeffs_copy[j] = 0;
+        }
+        for (int r = bsp->order; r >= 2; r--)
+        {
+            i = delta;
+            for (int s = 0; s <= r-2; s++)
+            {
+                omega = 0;
+                float diff = bsp->knots[i+r - 1] - bsp->knots[i];
+                if (diff > 0)
+                {
+                omega =
+                    (u - bsp->knots[i]) / 
+                    (diff);
+                }
+                x_coeffs_copy[s] = 
+                    (omega) * x_coeffs_copy[s] + 
+                    (1-omega) * x_coeffs_copy[s+1];
+
+                y_coeffs_copy[s] = 
+                    (omega) * y_coeffs_copy[s] + 
+                    (1-omega) * y_coeffs_copy[s+1];
+
+                i--;
+            }
+        }
+        l.x1 = x_coeffs_copy[0];
+        l.y1 = y_coeffs_copy[0];
+        modify(canvas, bsp, u, &l, b, opts);
+        // 333
+
+        if (draw > 0)
+        {
+            new_line(canvas, &l, b);
+            //circle(canvas, l.x0, l.y0, b->r, b->colour);
+            //line(canvas, l.x0, l.y0, l.x1, l.y1,  b->colour);
+        }
+        (void)p0;
+        l.x0 = l.x1;
+        l.y0 = l.y1;
+        draw++;
+    }
+    free(x_coeffs_copy);
+    free(y_coeffs_copy);
+}
+
+void bspeline_wiggle(Canvas* canvas, BSpline* bsp, SimpleBrush* b)
+{
+
+    int delta = bsp->order- 1;
+    int draw = 0;
+    int i = 0;
+    float omega;
+    Point p0 = {0, 0};
+    Point p1 = {0, 0};
+    float u = 0.0f;
+    float* x_coeffs_copy = malloc(bsp->coeffs_count * sizeof(float));
+    float* y_coeffs_copy = malloc(bsp->coeffs_count * sizeof(float));
+
+    float inc = 
+        (bsp->knots[bsp->coeffs_count] - bsp->knots[bsp->order - 1])
+        / bsp->seg_count;
+
+    Line l = 
+    {
+        .x0 = p0.x,
+        .y0 = p0.y,
+        .x1 = p1.x,
+        .y1 = p1.y,
+    };
+    for (u = bsp->knots[bsp->order - 1]; u < bsp->knots[bsp->coeffs_count]; u+=inc)
+    {
+        delta += (u >= bsp->knots[delta + 1]);
+        for (int j = 0; j < bsp->order; j++)
+        {
+            x_coeffs_copy[j] = bsp->x_coeffs[delta - j];
+            y_coeffs_copy[j] = bsp->y_coeffs[delta - j];
+        }
+        for (int j = bsp->order; j < delta + 1; j++)
+        {
+            x_coeffs_copy[j] = 0;
+            y_coeffs_copy[j] = 0;
+        }
+        for (int r = bsp->order; r >= 2; r--)
+        {
+            i = delta;
+            for (int s = 0; s <= r-2; s++)
+            {
+                omega = 0;
+                float diff = bsp->knots[i+r - 1] - bsp->knots[i];
+                if (diff > 0)
+                {
+                omega =
+                    (u - bsp->knots[i]) / 
+                    (diff);
+                }
+                x_coeffs_copy[s] = 
+                    (omega) * x_coeffs_copy[s] + 
+                    (1-omega) * x_coeffs_copy[s+1];
+
+                y_coeffs_copy[s] = 
+                    (omega) * y_coeffs_copy[s] + 
+                    (1-omega) * y_coeffs_copy[s+1];
+
+                i--;
+            }
+        }
+        l.x1 = x_coeffs_copy[0];
+        l.y1 = y_coeffs_copy[0];
+        if (rand_int_bound(0, 100) > 90)
+        {
+            l.x1 += rand_int_bound(-2, 2);
+            l.y1 += rand_int_bound(-2, 2);
+        }
+
+        if (draw > 0)
+        {
+            new_line(canvas, &l, b);
+        }
+        (void)p0;
+        l.x0 = l.x1;
+        l.y0 = l.y1;
+        draw++;
+    }
+    free(x_coeffs_copy);
+    free(y_coeffs_copy);
+}
+
 
 /*void fill(Canvas* canvas, Shape type, void* shape)
 {
