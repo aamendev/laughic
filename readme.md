@@ -44,4 +44,6 @@ Colors can be manipulated through numerous ways (e.g. inverting colours, clampin
 
 ### Path and Style
 Ability to draw curves (path) while applying arbitrary modifications alongside it (style). A basic building block for future npr.
+In the pic below, the first curve was modified to add some wobbles (errors) in the curve over a certain region (the bottom most curve has these random errors all over the curve).
+The others have some colour and width manipulation along the path (e.g. starting transparent and become more solid along the path, or getting thicker or getting yellower)
 ![showcase ps](./imgs/npr/curve2)
