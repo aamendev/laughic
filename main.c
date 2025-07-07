@@ -533,8 +533,10 @@ void npr_curve(Canvas* c)
     sb.r = 1;
     SimpleWiggleOpt s_wiggle_opt = 
     {
-        .min_wiggle = -3,
-        .max_wiggle = 3,
+        .min_wiggle_x = 0,
+        .max_wiggle_x = 1,
+        .min_wiggle_y = 0,
+        .max_wiggle_y = 5,
         .prob = 20,
     };
 
@@ -551,8 +553,10 @@ void npr_curve(Canvas* c)
 
     SimpleRangeWiggleOpt s_range_wiggle_opt = 
     {
-        .min_wiggle = -3,
-        .max_wiggle = 3,
+        .min_wiggle_x = 0,
+        .max_wiggle_x = 1,
+        .min_wiggle_y = 0,
+        .max_wiggle_y = 5,
         .prob = 5,
         .min_u = 0.45f,
         .max_u = 0.55f,
@@ -701,10 +705,10 @@ int main()
     srand(time(NULL));
     fill(&canvas, BG);
     //filters_showcase(&canvas);
-    raytrace(&canvas);
+    //raytrace(&canvas);
     //intensity_ramp(&canvas);
     //npr(&canvas);
     //curve_exp(&canvas);
- //   npr_curve(&canvas);
+    npr_curve(&canvas);
     //run_exp(&canvas);
 }

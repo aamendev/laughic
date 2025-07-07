@@ -31,8 +31,8 @@ void bspline_simple_wiggle_modify(Canvas* c, BSpline* bsp, float u, Line* l, Sim
     SimpleWiggleOpt* wo = (SimpleWiggleOpt*) opts;
     if (rand_int_bound(0, 100) < wo->prob)
     {
-        l->x1 += rand_int_bound(wo->min_wiggle, wo->max_wiggle);
-        l->y1 += rand_int_bound(wo->min_wiggle, wo->max_wiggle);
+        l->x1 += rand_int_bound(wo->min_wiggle_x, wo->max_wiggle_x);
+        l->y1 += rand_int_bound(wo->min_wiggle_y, wo->max_wiggle_y);
     }
 }
 
@@ -42,7 +42,7 @@ void bspline_simple_range_wiggle_modify(Canvas* c, BSpline* bsp, float u, Line* 
     if (rand_int_bound(0, 100) < wo->prob && 
             u >= wo->min_u && u <= wo->max_u)
     {
-        l->x1 += rand_int_bound(wo->min_wiggle, wo->max_wiggle);
-        l->y1 += rand_int_bound(wo->min_wiggle, wo->max_wiggle);
+        l->x1 += rand_int_bound(wo->min_wiggle_x, wo->max_wiggle_x);
+        l->y1 += rand_int_bound(wo->min_wiggle_y, wo->max_wiggle_y);
     }
 }

@@ -18,15 +18,19 @@ typedef struct RadiusColOpt
 typedef struct SimpleWiggleOpt
 {
     u8 prob;
-    int min_wiggle;
-    int max_wiggle;
+    int min_wiggle_x;
+    int max_wiggle_x;
+    int min_wiggle_y;
+    int max_wiggle_y;
 } SimpleWiggleOpt;
 
 typedef struct SimpleRangeWiggleOpt
 {
     u8 prob;
-    int min_wiggle;
-    int max_wiggle;
+    int min_wiggle_x;
+    int max_wiggle_x;
+    int min_wiggle_y;
+    int max_wiggle_y;
     float min_u;
     float max_u;
 } SimpleRangeWiggleOpt;
