@@ -9,6 +9,7 @@
 #include "./shapes.h"
 #include "./newton_fractals.h"
 #include "logic_util.h"
+#include "spline_samples.h"
 #include "math/vector3d.h"
 #include "processing.h"
 #include "colours.h"
@@ -565,7 +566,7 @@ void npr_curve(Canvas* c)
 
     save(c, JPG, "./imgs/npr/curve2");
 }
-void npr(Canvas* c)
+void npr_processing(Canvas* c)
 {
     read_to_canvas(c, "./assets/levi.jpg");
     default_ordered_dithering(c);
@@ -695,10 +696,121 @@ void curve_exp(Canvas* c)
         .knot_count = 10,
         .order = 4,
     };
+
+    SimpleBrush sb = 
+    {
+        .colour = BLUE,
+        .r = 1,
+    };
     
-    bspline(c, &test_spline, BLUE);
+    bspline(c, &test_spline, &sb);
 
     save(c, JPG, "./imgs/curves/curve");
+}
+
+void npr_path_style_sample(Canvas* c)
+{
+    SimpleBrush sb = 
+    {
+        .colour = BLACK,
+        .r = 1,
+    };
+    int x_off = 15;
+    int y_off = 30;
+
+    bspline_face_outline(c, &sb, c->width / 4, c->height / 4);
+    bspline_l_eye(
+            c, 
+            &sb, 
+            c->width / 4 + x_off,
+            c->height / 4 + y_off);
+
+    x_off = 105;
+    y_off = 30;
+    bspline_r_eye(
+            c, 
+            &sb, 
+            c->width / 4 + x_off,
+            c->height / 4 + y_off);
+
+    x_off = 50;
+    y_off = 80;
+    bspline_nose(
+            c, 
+            &sb, 
+            c->width / 4 + x_off,
+            c->height / 4 + y_off);
+
+    x_off = 30;
+    y_off = 120;
+    bspline_smile(
+            c, 
+            &sb, 
+            c->width / 4 + x_off,
+            c->height / 4 + y_off);
+
+
+    SimpleWiggleOpt s_wiggle_opt = 
+    {
+        .min_wiggle_x = 0,
+        .max_wiggle_x = 1,
+        .min_wiggle_y = 0,
+        .max_wiggle_y = 10,
+        .prob = 20,
+    };
+
+    RadiusOpt r_opt = 
+    {
+        .min_r = 1,
+        .max_r = 3
+    };
+
+    sb.r = 1;
+    y_off = 0;
+    x_off = c->width / 4;
+    bspline_wiggle_face_outline(
+            c, &sb, 
+            c->width/4 + x_off,
+            c->height / 4 + y_off,
+            &s_wiggle_opt, bspline_simple_wiggle_modify);
+
+    y_off += 30;
+    x_off += 15;
+
+    bspline_width_l_eye(
+            c, &sb, 
+            c->width/4 + x_off,
+            c->height / 4 + y_off,
+            &r_opt, bspline_width_modify);
+
+    y_off += 0;
+    x_off += 85;
+
+    bspline_width_r_eye(
+            c, &sb, 
+            c->width/4 + x_off,
+            c->height / 4 + y_off,
+            &r_opt, bspline_width_modify);
+
+    y_off += 50;
+    x_off -= 50;
+
+    bspline_width_nose(
+            c, &sb, 
+            c->width/4 + x_off,
+            c->height / 4 + y_off,
+            &r_opt, bspline_width_modify);
+
+    y_off += 50;
+    x_off -= 20;
+
+    bspline_width_smile(
+            c, &sb, 
+            c->width/4 + x_off,
+            c->height / 4 + y_off,
+            &r_opt, bspline_mid_width_modify);
+
+    save(c, JPG, "./imgs/npr/ps1");
 }
 int main()
 {
@@ -707,8 +819,8 @@ int main()
     //filters_showcase(&canvas);
     //raytrace(&canvas);
     //intensity_ramp(&canvas);
-    //npr(&canvas);
+    //npr_processing(&canvas);
     //curve_exp(&canvas);
-    npr_curve(&canvas);
+    npr_path_style_sample(&canvas);
     //run_exp(&canvas);
 }

@@ -36,6 +36,7 @@ typedef struct SimpleRangeWiggleOpt
 } SimpleRangeWiggleOpt;
 
 void bspline_width_modify(Canvas* c, BSpline* bsp, float u, Line* l, SimpleBrush* b, void* opts);
+void bspline_mid_width_modify(Canvas* c, BSpline* bsp, float u, Line* l, SimpleBrush* b, void* opts);
 void bspline_channel_modify(Canvas* c, BSpline* bsp, float u, Line* l, SimpleBrush* b, void* opts);
 
 void bspline_channel_width_modify(Canvas* c, BSpline* bsp, float u, Line* l, 

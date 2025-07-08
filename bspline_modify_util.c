@@ -8,6 +8,26 @@ void bspline_width_modify(Canvas* c, BSpline* bsp, float u, Line* l, SimpleBrush
     b->r = ratio * (ro->max_r - ro->min_r) + ro->min_r;
 }
 
+void bspline_mid_width_modify(Canvas* c, BSpline* bsp, float u, Line* l, SimpleBrush* b, void* opts)
+{
+    RadiusOpt* ro = (RadiusOpt*) opts;
+    float ratio = 0;
+    if (u <= 0.5f)
+    {
+    ratio = 
+        (2 * u - bsp->knots[bsp->order - 1]) /
+        (bsp->knots[bsp->coeffs_count] - bsp->knots[bsp->order - 1]);
+    b->r = ro->max_r - ratio * (ro->max_r - ro->min_r);
+    }
+    else 
+    {
+    ratio = 
+        (2 * (u - 0.5f) - bsp->knots[bsp->order - 1]) /
+        (bsp->knots[bsp->coeffs_count] - bsp->knots[bsp->order - 1]);
+    b->r = ro->min_r + ratio * (ro->max_r - ro->min_r);
+    }
+}
+
 void bspline_channel_modify(Canvas* c, BSpline* bsp, float u, Line* l, SimpleBrush* b, void* opts)
 {
     float ratio = 
