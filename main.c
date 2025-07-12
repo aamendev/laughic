@@ -489,7 +489,7 @@ void npr_curve(Canvas* c)
         .x_coeffs = xcoffs,
         .y_coeffs = ycoffs,
         .coeffs_count= 6,
-        .seg_count = 1e3,
+        .seg_count = 1e2,
         .knots = knots,
         .knot_count = 10,
         .order = 4,
@@ -822,5 +822,6 @@ int main()
     //npr_processing(&canvas);
     //curve_exp(&canvas);
     npr_path_style_sample(&canvas);
+    //npr_curve(&canvas);
     //run_exp(&canvas);
 }
