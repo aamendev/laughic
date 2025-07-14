@@ -564,6 +564,13 @@ void npr_curve(Canvas* c)
     };
     bspline_modify(c, &test_spline, &sb, &s_range_wiggle_opt, bspline_simple_range_wiggle_modify);
 
+    for (int i = 0; i < test_spline.coeffs_count; i++)
+    {
+       test_spline.y_coeffs[i] += 100; 
+    }
+
+    bspline_lod_test(c, &test_spline, &sb, 20);
+
     save(c, JPG, "./imgs/npr/curve2");
 }
 void npr_processing(Canvas* c)
@@ -773,6 +780,7 @@ void npr_path_style_sample(Canvas* c)
             c->width/4 + x_off,
             c->height / 4 + y_off,
             &s_wiggle_opt, bspline_simple_wiggle_modify);
+            
 
     y_off += 30;
     x_off += 15;
@@ -809,6 +817,7 @@ void npr_path_style_sample(Canvas* c)
             c->width/4 + x_off,
             c->height / 4 + y_off,
             &r_opt, bspline_mid_width_modify);
+    (void) s_wiggle_opt;
 
     save(c, JPG, "./imgs/npr/ps1");
 }
@@ -822,6 +831,6 @@ int main()
     //npr_processing(&canvas);
     //curve_exp(&canvas);
     npr_path_style_sample(&canvas);
-    //npr_curve(&canvas);
+   // npr_curve(&canvas);
     //run_exp(&canvas);
 }

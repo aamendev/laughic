@@ -134,6 +134,141 @@ void bspline_face_outline(Canvas * c, SimpleBrush* sb, int x0, int y0)
     };
     bspline(c, &r_top_face, sb);
 }
+void bspline_lod_face_outline(Canvas * c, SimpleBrush* sb, int x0, int y0, u32 seg_count)
+{
+    int bspline_offset_x = 15;
+    int bspline_offset_y = 50;
+    float knots[14] = {
+        0,
+        0,
+        0,
+        0,
+        1.0f,
+        1.0f,
+        1.0f,
+        1.0f,
+    };
+
+
+    float l_face_xcoffs[6] = 
+    {
+        x0 + bspline_offset_x, 
+        x0 - bspline_offset_x,
+        x0 - bspline_offset_x,
+        x0 + 4 * bspline_offset_x,
+    };
+
+    float l_face_ycoffs[6] = 
+    {
+        y0, 
+        y0 + bspline_offset_y,
+        y0 + 3.8f * bspline_offset_y,
+        y0 + 4 * bspline_offset_y
+    };
+    BSpline l_face = 
+    {
+        .x_coeffs = l_face_xcoffs,
+        .y_coeffs = l_face_ycoffs,
+        .coeffs_count= 4,
+        .seg_count = 1e3,
+        .knots = knots,
+        .knot_count = 8,
+        .order = 4,
+    };
+    bspline_lod_test(c, &l_face, sb, seg_count);
+ float r_face_xcoffs[6] = 
+    {
+        x0 - bspline_offset_x, 
+        x0 + bspline_offset_x,
+        x0 + bspline_offset_x,
+        x0 - 4 * bspline_offset_x,
+    };
+
+    float r_face_ycoffs[6] = 
+    {
+        y0, 
+        y0 + bspline_offset_y,
+        y0 + 3.8f * bspline_offset_y,
+        y0 + 4 * bspline_offset_y
+    };
+
+    BSpline r_face = 
+    {
+        .x_coeffs = r_face_xcoffs,
+        .y_coeffs = r_face_ycoffs,
+        .coeffs_count= 4,
+        .seg_count = 1e3,
+        .knots = knots,
+        .knot_count = 8,
+        .order = 4,
+    };
+
+    int extra_offset = 120;
+    for (int i = 0; i < r_face.coeffs_count; i++)
+    {
+        r_face.x_coeffs[i] += extra_offset;
+    }
+    bspline_lod_test(c, &r_face, sb, seg_count);
+
+ float l_top_face_xcoffs[6] = 
+    {
+        x0 + bspline_offset_x, 
+        x0 + 2* bspline_offset_x,
+        x0 + 3 * bspline_offset_x,
+        x0 + 5 * bspline_offset_x,
+    };
+
+    bspline_offset_y /= 8;
+
+    float l_top_face_ycoffs[6] = 
+    {
+        y0, 
+        y0 - bspline_offset_y,
+        y0 - 3.8f * bspline_offset_y,
+        y0 - 4 * bspline_offset_y
+    };
+
+    BSpline l_top_face = 
+    {
+        .x_coeffs = l_top_face_xcoffs,
+        .y_coeffs = l_top_face_ycoffs,
+        .coeffs_count= 4,
+        .seg_count = 1e3,
+        .knots = knots,
+        .knot_count = 8,
+        .order = 4,
+    };
+    bspline_lod_test(c, &l_top_face, sb, seg_count);
+
+    float r_top_face_xcoffs[6] = 
+    {
+        x0 + 5 * bspline_offset_x, 
+        x0 + 6 * bspline_offset_x,
+        x0 + 6.5 * bspline_offset_x,
+        x0 + 7 * bspline_offset_x,
+    };
+
+
+    float r_top_face_ycoffs[6] = 
+    {
+        y0 - 4 * bspline_offset_y,
+        y0 - 3.8f * bspline_offset_y,
+        y0 - bspline_offset_y,
+        y0, 
+    };
+
+    BSpline r_top_face = 
+    {
+        .x_coeffs = r_top_face_xcoffs,
+        .y_coeffs = r_top_face_ycoffs,
+        .coeffs_count= 4,
+        .seg_count = 1e3,
+        .knots = knots,
+        .knot_count = 8,
+        .order = 4,
+    };
+    bspline_lod_test(c, &r_top_face, sb, seg_count);
+}
 void bspline_l_eye(Canvas* c, SimpleBrush* sb, int x0, int y0)
 {
     int bspline_offset_x = 10;

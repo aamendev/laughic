@@ -923,6 +923,116 @@ void bspline_modify(Canvas* canvas, BSpline* bsp, SimpleBrush* b, void* opts,
     free(x_coeffs_copy);
     free(y_coeffs_copy);
 }
+
+void bspline_lod_test(Canvas* canvas, BSpline* bsp, SimpleBrush* sb, u32 stroke_count)
+{
+    int delta = bsp->order- 1;
+    int draw = 0;
+    int i = 0;
+    float omega;
+    Point p0 = {0, 0};
+    Point p1 = {0, 0};
+    float u = 0.0f;
+    float* x_coeffs_copy = malloc(bsp->coeffs_count * sizeof(float));
+    float* y_coeffs_copy = malloc(bsp->coeffs_count * sizeof(float));
+    float sub_knots[8] = 
+    {
+        0,
+        0,
+        0,
+        0,
+        1,
+        1,
+        1,
+        1,
+    };
+    float sub_x_coeffs[4];
+    float sub_y_coeffs[4];
+    BSpline sub_spline;
+
+    Line l = 
+    {
+        .x0 = p0.x,
+        .y0 = p0.y,
+        .x1 = p1.x,
+        .y1 = p1.y,
+    };
+
+    float inc = 
+        (bsp->knots[bsp->coeffs_count] - bsp->knots[bsp->order - 1])
+        / stroke_count;
+
+    for (u = bsp->knots[bsp->order - 1]; u < bsp->knots[bsp->coeffs_count]; u+=inc)
+    {
+        delta += (u >= bsp->knots[delta + 1]);
+        for (int j = 0; j < bsp->order; j++)
+        {
+            x_coeffs_copy[j] = bsp->x_coeffs[delta - j];
+            y_coeffs_copy[j] = bsp->y_coeffs[delta - j];
+        }
+        for (int j = bsp->order; j < delta + 1; j++)
+        {
+            x_coeffs_copy[j] = 0;
+            y_coeffs_copy[j] = 0;
+        }
+        for (int r = bsp->order; r >= 2; r--)
+        {
+            i = delta;
+            for (int s = 0; s <= r-2; s++)
+            {
+                omega = 0;
+                float diff = bsp->knots[i+r - 1] - bsp->knots[i];
+                if (diff > 0)
+                {
+                    omega =
+                        (u - bsp->knots[i]) / 
+                        (diff);
+                }
+                x_coeffs_copy[s] = 
+                    (omega) * x_coeffs_copy[s] + 
+                    (1-omega) * x_coeffs_copy[s+1];
+
+                y_coeffs_copy[s] = 
+                    (omega) * y_coeffs_copy[s] + 
+                    (1-omega) * y_coeffs_copy[s+1];
+
+                i--;
+            }
+        }
+        l.x1 = x_coeffs_copy[0];
+        l.y1 = y_coeffs_copy[0];
+
+        sub_x_coeffs[0] = l.x0;
+        sub_x_coeffs[1] = fmax(l.x1, l.x0) + abs(l.x0 - l.x1);
+
+        sub_x_coeffs[2] = fmin(l.x0, l.x1) - abs(l.x0 - l.x1);
+        sub_x_coeffs[3] = l.x1;
+
+        sub_y_coeffs[0] = l.y0;
+        sub_y_coeffs[1] = fmin(l.y0, l.y1) - 10.0f;
+        sub_y_coeffs[2] = fmin(l.y0, l.y1) - 10.0f;
+        sub_y_coeffs[3] = l.y1;
+
+            sub_spline.knots = sub_knots;
+            sub_spline.knot_count = 8;
+            sub_spline.x_coeffs = sub_x_coeffs;
+            sub_spline.y_coeffs = sub_y_coeffs;
+            sub_spline.coeffs_count = 4;
+            sub_spline.order = 4;
+            sub_spline.seg_count = 1e2;
+
+        // 333
+        if (draw > 0)
+        {
+            bspline(canvas, &sub_spline, sb);
+        }
+        l.x0 = l.x1;
+        l.y0 = l.y1;
+        draw++;
+    }
+    free(x_coeffs_copy);
+    free(y_coeffs_copy);
+}
 /*void fill(Canvas* canvas, Shape type, void* shape)
 {
     switch(shape)

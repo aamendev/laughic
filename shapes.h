@@ -130,6 +130,7 @@ void parametric_cubic(Canvas* canvas, ParametricCubic2D* pc2, u32 colour);
 void bspline(Canvas* canvas, BSpline* bsp, SimpleBrush* b);
 void bspline_modify(Canvas* canvas, BSpline* bsp, SimpleBrush* b, void* opts,
         void(*modify)(Canvas* c, BSpline* bsp, float u, Line* l, SimpleBrush* b, void* opts));
+void bspline_lod_test(Canvas* canvas, BSpline* bsp, SimpleBrush* sb, u32 stroke_count);
 
 
 //void fill(Canvas* canvas, Shape type, void* shape);

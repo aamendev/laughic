@@ -15,6 +15,9 @@ void bspline_wiggle_face_outline(
         (Canvas* c, 
          BSpline* bsp, float u, Line* l, SimpleBrush* b, void* opts));
 
+void bspline_lod_face_outline(Canvas* canvas, SimpleBrush* b, int x0, int y0,
+        u32 seg_count
+        );
 void bspline_width_l_eye(
         Canvas* canvas, SimpleBrush* b, int x0, int y0, void* opts,
         void(*modify)
