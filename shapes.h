@@ -45,7 +45,7 @@ void bspline_circ_test(Canvas* canvas, BSpline* bsp, SimpleBrush* sb, u32 stroke
 
 
 void bounded_circle(Canvas* canvas, Circle* c, ParametricLine* l, u32 colour);
-
+void bspline_lina_test(Canvas* canvas, BSpline* bsp, SimpleBrush* sb, u32 stroke_count);
 //void fill(Canvas* canvas, Shape type, void* shape);
 
 #endif

@@ -578,6 +578,11 @@ void npr_curve(Canvas* c)
 
     bspline_circ_test(c, &test_spline, &sb, 40);
 
+    for (int i = 0; i < test_spline.coeffs_count; i++)
+    {
+       test_spline.x_coeffs[i] -= 100; 
+    }
+    //bspline_lina(c, &sb, test_spline.x_coeffs[0], test_spline.y_coeffs[0]);
     save(c, JPG, "./imgs/npr/curve2");
 }
 void npr_processing(Canvas* c)

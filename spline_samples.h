@@ -41,4 +41,6 @@ void bspline_width_smile(
         void(*modify)
         (Canvas* c, 
          BSpline* bsp, float u, Line* l, SimpleBrush* b, void* opts));
+
+void bspline_lina(Canvas* canvas, SimpleBrush* b, int x0, int y0);
 #endif
