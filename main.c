@@ -571,6 +571,13 @@ void npr_curve(Canvas* c)
 
     bspline_lod_test(c, &test_spline, &sb, 20);
 
+    for (int i = 0; i < test_spline.coeffs_count; i++)
+    {
+       test_spline.y_coeffs[i] += 100; 
+    }
+
+    bspline_circ_test(c, &test_spline, &sb, 40);
+
     save(c, JPG, "./imgs/npr/curve2");
 }
 void npr_processing(Canvas* c)
@@ -821,6 +828,18 @@ void npr_path_style_sample(Canvas* c)
 
     save(c, JPG, "./imgs/npr/ps1");
 }
+void bounded(Canvas* c)
+{
+    Circle circ = {.cx = c->width/2, .cy = c->height/2, .r = 20};
+    ParametricLine pl = {
+        .x0 = circ.cx - circ.r - 2, .y0 = circ.cy,
+        .dx = 2,
+        .dy = -1,
+        .t = 1,
+    };
+    bounded_circle(c, &circ, &pl, RED);
+    save(c, JPG, "./imgs/npr/bounded_circle");
+}
 int main()
 {
     srand(time(NULL));
@@ -830,7 +849,8 @@ int main()
     //intensity_ramp(&canvas);
     //npr_processing(&canvas);
     //curve_exp(&canvas);
-    npr_path_style_sample(&canvas);
-   // npr_curve(&canvas);
+    //npr_path_style_sample(&canvas);
+  //  bounded(&canvas);
+    npr_curve(&canvas);
     //run_exp(&canvas);
 }

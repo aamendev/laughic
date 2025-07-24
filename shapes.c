@@ -1,5 +1,8 @@
 #include "./shapes.h"
+#include "bspline_modify_util.h"
 #include "logic_util.h"
+#include "math/vector3d.h"
+#include "raytracer/brdf/brdf.h"
 #include <stdio.h>
 
 static void steep_line(Canvas* canvas, int x0, int y0, int x1, int y1, u32 colour)
@@ -382,6 +385,122 @@ void ellipse(Canvas* canvas, int x, int y, int r0, int r1, u32 colour)
         j = j1 * (v1 <= v2) + j2 * !(v1 <= v2);
 
         i--;
+    }
+}
+
+
+void bounded_circle(Canvas* canvas, Circle* c, ParametricLine* l, u32 colour)
+{
+    // Finding Intersection
+    Vector3d center = {.x = c->cx, .y = c->cy, .z = 0};
+    Vector3d line_base = {.x = l->x0, .y = l->y0, .z = 0};
+    Vector3d base_center = sub(&(center), &line_base);
+    Vector3d line_dir = {.x = l->dx, .y = l->dy, .z = 0};
+    line_dir = normalise(&line_dir);
+    f32 tca = dot(&base_center, &line_dir);
+
+    if (squared_magnitude(&base_center) > c->r * c->r)
+    {
+        circle(canvas, c->cx, c->cy, c->r, colour);
+        return;
+    }
+    Vector3d rejected = reject(&base_center, &(line_dir));
+    if (squared_magnitude(&rejected) > c->r * c->r)
+    {
+        circle(canvas, c->cx, c->cy, c->r, colour);
+        return;
+    }
+    float thc = sqrt(c->r * c->r - squared_magnitude(&rejected));
+
+    f32 t0 = tca - thc;
+    f32 t1 = tca + thc;
+    Line pl;
+
+    Point inter_0 = {.x = l->x0 + t0 * l->dx, .y = l->y0 + t0 * l->dy};
+    Point inter_1 = {.x = l->x0 + t1 * l->dx, .y = l->y0 + t1 * l->dy};
+
+    pl.x0 = inter_0.x;
+    pl.y0 = inter_0.y;
+    pl.x1 = inter_1.x;
+    pl.y1 = inter_1.y;
+
+    ParametricLine normal;
+    get_line_normal(&pl, &normal);
+
+    Vector3d normal_dir = {normal.dx, normal.dy, 0};
+    normal_dir = normalise(&normal_dir);
+
+    Vector3d diff;
+    diff.z = 0;
+
+    int j = 0;
+    int i = c->r;
+    while (i > -j)
+    {
+        diff.x = (i + c->cx - inter_0.x);
+        diff.y = (j + c->cy - inter_0.y);
+        if (dot(&diff, &normal_dir) > 0)
+        {
+        mix_colour(&canvas->pixels[(j + c->cy) * canvas->width + i + c->cx] , colour);
+        }
+        diff.x = (-i + c->cx - inter_0.x);
+        diff.y = (j + c->cy - inter_0.y);
+        if (dot(&diff, &normal_dir) > 0)
+        {
+        mix_colour(&canvas->pixels[(j + c->cy) * canvas->width - i + c->cx] , colour);
+        }
+
+        diff.x = (i + c->cx - inter_0.x);
+        diff.y = (-j + c->cy - inter_0.y);
+        if (dot(&diff, &normal_dir) > 0)
+        {
+            mix_colour(&canvas->pixels[(c->cy - j) * canvas->width + i + c->cx] , colour);
+        }
+
+        diff.x = (-i + c->cx - inter_0.x);
+        diff.y = (-j + c->cy - inter_0.y);
+        if (dot(&diff, &normal_dir) > 0)
+        {
+            mix_colour(&canvas->pixels[(c->cy - j) * canvas->width - i + c->cx] , colour);
+        }
+
+        diff.x = (j + c->cx - inter_0.x);
+        diff.y = (i + c->cy - inter_0.y);
+        if (dot(&diff, &normal_dir) > 0)
+        {
+        mix_colour(&canvas->pixels[(i + c->cy) * canvas->width + j + c->cx] , colour);
+        }
+        diff.x = (-j + c->cx - inter_0.x);
+        diff.y = (i + c->cy - inter_0.y);
+        if (dot(&diff, &normal_dir) > 0)
+        {
+        mix_colour(&canvas->pixels[(i + c->cy) * canvas->width - j + c->cx] , colour);
+        }
+
+        diff.x = (j + c->cx - inter_0.x);
+        diff.y = (-i + c->cy - inter_0.y);
+        if (dot(&diff, &normal_dir) > 0)
+        {
+            mix_colour(&canvas->pixels[(c->cy - i) * canvas->width + j + c->cx] , colour);
+        }
+
+        diff.x = (-j + c->cx - inter_0.x);
+        diff.y = (-i + c->cy - inter_0.y);
+        if (dot(&diff, &normal_dir) > 0)
+        {
+            mix_colour(&canvas->pixels[(c->cy - i) * canvas->width - j + c->cx] , colour);
+        }
+
+        int i1 = i;
+        int jj = j - 1;
+        int i2 = i - 1;
+
+        int v1 = i1 * i1 + jj * jj - c->r * c->r;
+        int v2 = -(i2 * i2 + jj * jj - c->r * c->r);
+
+        i = i1 * (v1 <= v2) + i2 * !(v1 <= v2);
+
+        j--;
     }
 }
 
@@ -1025,6 +1144,90 @@ void bspline_lod_test(Canvas* canvas, BSpline* bsp, SimpleBrush* sb, u32 stroke_
         if (draw > 0)
         {
             bspline(canvas, &sub_spline, sb);
+        }
+        l.x0 = l.x1;
+        l.y0 = l.y1;
+        draw++;
+    }
+    free(x_coeffs_copy);
+    free(y_coeffs_copy);
+}
+
+void bspline_circ_test(Canvas* canvas, BSpline* bsp, SimpleBrush* sb, u32 stroke_count)
+{
+    int delta = bsp->order- 1;
+    int draw = 0;
+    int i = 0;
+    float omega;
+    Point p0 = {0, 0};
+    Point p1 = {0, 0};
+    float u = 0.0f;
+    float* x_coeffs_copy = malloc(bsp->coeffs_count * sizeof(float));
+    float* y_coeffs_copy = malloc(bsp->coeffs_count * sizeof(float));
+
+    Line l = 
+    {
+        .x0 = p0.x,
+        .y0 = p0.y,
+        .x1 = p1.x,
+        .y1 = p1.y,
+    };
+
+    float inc = 
+        (bsp->knots[bsp->coeffs_count] - bsp->knots[bsp->order - 1])
+        / stroke_count;
+
+    for (u = bsp->knots[bsp->order - 1]; u < bsp->knots[bsp->coeffs_count]; u+=inc)
+    {
+        delta += (u >= bsp->knots[delta + 1]);
+        for (int j = 0; j < bsp->order; j++)
+        {
+            x_coeffs_copy[j] = bsp->x_coeffs[delta - j];
+            y_coeffs_copy[j] = bsp->y_coeffs[delta - j];
+        }
+        for (int j = bsp->order; j < delta + 1; j++)
+        {
+            x_coeffs_copy[j] = 0;
+            y_coeffs_copy[j] = 0;
+        }
+        for (int r = bsp->order; r >= 2; r--)
+        {
+            i = delta;
+            for (int s = 0; s <= r-2; s++)
+            {
+                omega = 0;
+                float diff = bsp->knots[i+r - 1] - bsp->knots[i];
+                if (diff > 0)
+                {
+                    omega =
+                        (u - bsp->knots[i]) / 
+                        (diff);
+                }
+                x_coeffs_copy[s] = 
+                    (omega) * x_coeffs_copy[s] + 
+                    (1-omega) * x_coeffs_copy[s+1];
+
+                y_coeffs_copy[s] = 
+                    (omega) * y_coeffs_copy[s] + 
+                    (1-omega) * y_coeffs_copy[s+1];
+
+                i--;
+            }
+        }
+        l.x1 = x_coeffs_copy[0];
+        l.y1 = y_coeffs_copy[0];
+
+        ParametricLine normal;
+        get_line_normal(&l, &normal);
+        normal.x0 = l.x1;
+        normal.y0 = l.y1;
+        Circle circ = {.cx = (l.x0 + l.x1)/2, .cy = (l.y0 + l.y1)/2, .r = 20};
+
+        // 333
+        if (draw > 0)
+        {
+            //bspline(canvas, &sub_spline, sb);
+            bounded_circle(canvas, &circ, &normal, sb->colour);
         }
         l.x0 = l.x1;
         l.y0 = l.y1;

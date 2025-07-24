@@ -67,4 +67,8 @@ void unsigned_to_signed(i64* sgn, u32* un);
 
 // Comp
 i8 compare_with_comps(u32 c, u8 t);
+
+void get_line_normal(Line* l, ParametricLine* normal);
+void line_to_parametric(Line* l, ParametricLine* pl);
+void parametric_to_line(ParametricLine* pl, Line* l);
 #endif

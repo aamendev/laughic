@@ -1,99 +1,9 @@
 #include "./logic_util.h"
 #include "./graphics_util.h"
+#include "./math/vector3d.h"
 #ifndef SHAPESH
 #define SHAPESH
 
-typedef struct Point
-{
-    int x;
-    int y;
-} Point;
-typedef struct SimpleBrush
-{
-    u32 r;
-    u32 colour;
-} SimpleBrush;
-
-typedef struct Line
-{
-    int x0;
-    int y0;
-    int x1;
-    int y1;
-} Line;
-
-typedef struct Circle
-{
-    int r;
-    int cx;
-    int cy;
-    u32 colour;
-} Circle;
-
-typedef struct Rectangle
-{
-    int x;
-    int y;
-    int w;
-    int h;
-    u32 colour;
-} Rectangle;
-
-typedef struct Ellipse
-{
-   int x;
-   int y;
-   int r0;
-   int r1;
-   u32 colour;
-} Ellipse;
-
-typedef struct Triangle
-{
-    int x0;
-    int y0;
-    int x1;
-    int y1;
-    int x2;
-    int y2;
-    u32 colour;
-} Triangle;
-
-typedef struct ParametricCubic2D
-{
-    Point p0;
-    float ax;
-    float bx;
-    float cx;
-    float dx;
-    float ay;
-    float by;
-    float cy;
-    float dy;
-    int seg_num;
-} ParametricCubic2D;
-
-typedef struct BSpline
-{
-    float* knots;
-    int order;
-    int knot_count;
-    float* x_coeffs;
-    float* y_coeffs;
-    int coeffs_count;
-    int seg_count;
-} BSpline;
-
-
-typedef enum Shape
-{
-    LINE,
-    RECTANGLE,
-    CIRCLE,
-    ELLIPSE,
-    TRIANGLE,
-    TOTAL
-} Shape;
 void point(Canvas* canvas, int x, int y, u32 colour);
 void line_old(Canvas* canvas, int x0, int y0, int x1, int y1, u32 colour);
 void line(Canvas* canvas, int x0, int y0, int x1, int y1, u32 colour);
@@ -131,7 +41,10 @@ void bspline(Canvas* canvas, BSpline* bsp, SimpleBrush* b);
 void bspline_modify(Canvas* canvas, BSpline* bsp, SimpleBrush* b, void* opts,
         void(*modify)(Canvas* c, BSpline* bsp, float u, Line* l, SimpleBrush* b, void* opts));
 void bspline_lod_test(Canvas* canvas, BSpline* bsp, SimpleBrush* sb, u32 stroke_count);
+void bspline_circ_test(Canvas* canvas, BSpline* bsp, SimpleBrush* sb, u32 stroke_count);
 
+
+void bounded_circle(Canvas* canvas, Circle* c, ParametricLine* l, u32 colour);
 
 //void fill(Canvas* canvas, Shape type, void* shape);
 

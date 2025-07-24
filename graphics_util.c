@@ -293,3 +293,30 @@ u8 get_channel(u32* col, Channel channel)
     unpack(comps, col);
     return comps[channel];
 }
+
+void get_line_normal(Line* l, ParametricLine* normal)
+{
+
+    normal->x0 = (l->x0 + l->x1) / 2;
+    normal->y0 = (l->y1 + l->y0) / 2;
+    normal->dy = l->x1 - l->x0;
+    normal->dx = -(l->y1 - l->y0);
+    normal->t = 1;
+}
+void line_to_parametric(Line* l, ParametricLine* pl)
+{
+    f32 m = ((f32)(l->y1 - l->y0) / (l->x1 - l->x1));
+    pl->x0 = l->x0;
+    pl->y0 = l->x1;
+    pl->dx = sqrt(1 / (1 + m * m));
+    pl->dy = m * pl->dx;
+}
+
+void parametric_to_line(ParametricLine* pl, Line* l)
+{
+    l->x0 = pl->x0;
+    l->y0 = pl->y0;
+
+    l->x1 = l->x0 + pl->t * pl->dx;
+    l->y1 = l->y0 + pl->t * pl->dy;
+}
