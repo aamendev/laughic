@@ -15,6 +15,7 @@
 #include "colours.h"
 #include "raytracer/scenes/sample_scene.h"
 #include "./experiments/noise_texture.h"
+#include "core/core_tests.h"
 
 typedef enum
 {
@@ -848,6 +849,8 @@ void bounded(Canvas* c)
 int main()
 {
     srand(time(NULL));
+    all_tests();
+
     fill(&canvas, BG);
     //filters_showcase(&canvas);
     //raytrace(&canvas);
@@ -856,6 +859,6 @@ int main()
     //curve_exp(&canvas);
     //npr_path_style_sample(&canvas);
   //  bounded(&canvas);
-    npr_curve(&canvas);
+    //npr_curve(&canvas);
     //run_exp(&canvas);
 }
