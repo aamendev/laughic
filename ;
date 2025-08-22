@@ -1,66 +1,24 @@
 #include "processing.h"
-#include "colours.h"
 #include "logic_util.h"
 #include <stdint.h>
 #include <stdio.h>
 #include <time.h>
 
-void translate(Canvas* c, i32 valx, i32 valy)
-{
-    u32* copy = malloc(c->width * c->height * sizeof(u32));
-
-    for (int i = 0; i < c->width * c->height; i++)
-    {
-        copy[i] = c->pixels[i];
-    }
-
-    int newx, newy;
-    for (int i = 0; i < c->width * c->height; i++)
-    {
-        newx = (i % c->width - valx);
-        newx = (c->width + newx) * (newx < 0) + (newx - (int)c->width) * (newx >= (int)c->width)
-            + newx * (newx > 0 && newx < (int)c->width);
-        newy = i/c->width - valy;
-        newy = (c->height + newy) * (newy < 0) + (newy - c->height) * (newy >= (i32)c->height)
-            + newy * (newy > 0 && newy < (i32)c->height);
-
-        c->pixels[i] = copy[newy * c->width + newx];
-    }
-}
-void weighted_subtract_img(Canvas* c1, u32* c2, float w)
+void weighted_subtract_img(Canvas* c1, Canvas* c2, float w)
 {
     for (int i = 0; i < c1->width * c1->height; i++)
     {
         u8 channels[4];
         unpack(channels, &c1->pixels[i]);
         u8 channels2[4];
-        unpack(channels2, &c2[i]);
+        unpack(channels2, &c2->pixels[i]);
+        c1->pixels[i] = c1->pixels[i] - w * c2->pixels[i];
         for (int j = 0; j < 3; j++)
         {
-            channels[j] = (channels[j] - w * (float)channels2[j])
-                * ((float)channels[j] > w * (float) channels2[j]);
+            channels[j] =  channels[j] * val * (((u16)channels[j] * val) < 256)
+                + 255 * !(((u16)channels[j] * val) < 256);
         }
-        c1->pixels[i] = 0;
-        pack(channels, &c1->pixels[i]);
-    }
-}
-
-void weighted_add_img(Canvas* c1, u32* c2, float w)
-{
-    for (int i = 0; i < c1->width * c1->height; i++)
-    {
-        u8 channels[4];
-        unpack(channels, &c1->pixels[i]);
-        u8 channels2[4];
-        unpack(channels2, &c2[i]);
-        for (int j = 0; j < 3; j++)
-        {
-            channels[j] = (channels[j] + w * (float)channels2[j])
-                * ((float)channels[j] + w * (float) channels2[j] < 255)
-            + 255 * !((float)channels[j] + w * (float) channels2[j] < 255);
-        }
-        c1->pixels[i] = 0;
-        pack(channels, &c1->pixels[i]);
+        pack(channels, & c->pixels[i]);
     }
 }
 void mult_contrast(Canvas* c, float val)
@@ -356,20 +314,6 @@ void signed_general_linear_1d_filter(i64* s, u32 w, u32 h, i32* h1, u32 s1,
     }
     free(oldCanvas);
 }
-
-void s_general_linear_separated_filter(i64* s, u32 w, u32 h, i32* h1, u32 s1, i32* h2, u32 s2)
-{
-   signed_general_linear_1d_filter(s, w, h, h1, s1, FilterX);
-   signed_general_linear_1d_filter(s, w, h, h2, s2, FilterY);
-}
-
-void long_linear_separated_filter(LargeCanvas* s, i32* h1, u32 s1, i32* h2, u32 s2)
-{
-    long_general_linear_1d_filter(s, h1, s1, FilterX);
-    long_general_linear_1d_filter(s, h2, s2, FilterY);
-}
-
-
 void general_linear_1d_filter(Canvas* s, i32* h1, u32 s1, FilterDirection fd)
 {
     u32* oldCanvas = malloc(s->width * s->height * sizeof(u32));
@@ -384,7 +328,6 @@ void general_linear_1d_filter(Canvas* s, i32* h1, u32 s1, FilterDirection fd)
         norm1 += abs(h1[i]);
     }
     norm1 = 1.0f/norm1;
-
 
     for (int i = 0; i < s->width * s->height; i++)
     {
@@ -420,63 +363,6 @@ void general_linear_1d_filter(Canvas* s, i32* h1, u32 s1, FilterDirection fd)
         }
     }
     free(oldCanvas);
-}
-void long_general_linear_1d_filter(LargeCanvas* s, i32* h1, u32 s1, FilterDirection fd)
-{
-    u64* oldCanvas_rg = malloc(s->width * s->height * sizeof(u64));
-    u64* oldCanvas_ba = malloc(s->width * s->height * sizeof(u64));
-    i32 c1 = s1/2;
-    u64 curr_cell_rg = 0;
-    u64 curr_cell_ba = 0;
-    f32 norm1 = 0;
-    u32 comps[4];
-    i16 vals[4] = {0, 0, 0, 0};
-
-    for (int i = 0; i < s1; i++)
-    {
-        norm1 += abs(h1[i]);
-    }
-    norm1 = 1.0f/norm1;
-
-
-    for (int i = 0; i < s->width * s->height; i++)
-    {
-        oldCanvas_rg[i] = s->rg[i];
-        oldCanvas_ba[i] = s->ba[i];
-    }
-    for (int j = 0; j < s->height; j++)
-    {
-        for (int i = 0; i < s->width; i++)
-        {
-            for (int v = 0; v < 3; v++)
-            {
-                vals[v] = 0;
-            }
-            for (int u = -c1; u < c1 + (s1 % 2 == 1); u++)
-            {
-                int add1 = (fd == FilterX) * u * (i + u > -1 && i+u < s->width);
-                int add2 = (fd == FilterY) * u * (j + u > -1 && j+u < s->height);
-                curr_cell_rg = oldCanvas_rg[(j + add2) * (s->width) + i + add1];
-                curr_cell_ba = oldCanvas_ba[(j + add2) * (s->width) + i + add1];
-
-                long_unpack(comps, &curr_cell_rg, &curr_cell_ba);
-                for (int v = 0; v < 3; v++)
-                {
-                    vals[v] += (h1[c1 +u] * (i16)comps[v]);
-                }
-            }
-            for (int v = 0; v < 3; v++)
-            {
-                vals[v] *= norm1;
-                comps[v] = vals[v] * (vals[v] > 0);
-            }
-            s->rg[j * (s->width) + i] = 0;
-            s->ba[j * (s->width) + i] = 0;
-            long_pack(comps, &(s->rg[j * (s->width) + i]), &(s->ba[j * (s->width) + i]));
-        }
-    }
-    free(oldCanvas_rg);
-    free(oldCanvas_ba);
 }
 
 void general_linear_separated_filter(Canvas* s, i32* h1, u32 s1, i32* h2, u32 s2)
@@ -516,30 +402,6 @@ void binomial_filter(Canvas* s, u32 rad)
           //printf("%d\n", bin[i]);
     }
     general_linear_separated_filter(s, bin, 2*rad + 1, bin, 2*rad + 1);
-    //free(gauss);
-}
-
-void s_binomial_filter(i64* s, u32 w, u32 h , u32 rad)
-{
-    i32* bin = malloc((2 * rad + 1) * sizeof(u32));
-    for (int i = 0; i < 2*rad + 1; i++)
-    {
-          bin[i] = factorial(2 * rad) / (factorial(i) * factorial(2*rad - i));
-          //printf("%d\n", bin[i]);
-    }
-    s_general_linear_separated_filter(s, w, h, bin, 2*rad + 1, bin, 2*rad + 1);
-    //free(gauss);
-}
-
-void long_binomial_filter(LargeCanvas* s, u32 rad)
-{
-    i32* bin = malloc((2 * rad + 1) * sizeof(u32));
-    for (int i = 0; i < 2*rad + 1; i++)
-    {
-          bin[i] = factorial(2 * rad) / (factorial(i) * factorial(2*rad - i));
-          //printf("%d\n", bin[i]);
-    }
-    long_linear_separated_filter(s, bin, 2*rad + 1, bin, 2*rad + 1);
     //free(gauss);
 }
 
@@ -1044,228 +906,4 @@ void canny_trace_contour(u32* maximas, u32* mag, u32* contour,
     return;
 }
 
-void sharpen(Canvas* s, float sharpen_factor)
-{
-    u32* smoothed_copy = malloc(s->width * s->height * sizeof(u32));
-    u32* second_copy = malloc(s->width * s->height * sizeof(u32));
 
-    for (int i =0; i < s->width * s->height; i++)
-    {
-        smoothed_copy[i] = s->pixels[i];
-        second_copy[i] = s->pixels[i];
-    }
-
-    Canvas copy  = {.width = s->width, .height = s->height, .pixels = smoothed_copy};
-
-    binomial_filter(&copy, 5);
-    copy.pixels = second_copy;
-    weighted_subtract_img(&copy, smoothed_copy, 1);
-
-    weighted_add_img(s, copy.pixels, sharpen_factor);
-}
-
-void harris_filter(Canvas* s, float alpha, float threshold)
-{
-    u32* ix_pixels = malloc(s->width * s->height * sizeof(u32));
-    u32* iy_pixels = malloc(s->width * s->height * sizeof(u32));
-    u64* a_pixels_rg = malloc(s->width * s->height * sizeof(u64));
-    u64* a_pixels_ba = malloc(s->width * s->height * sizeof(u64));
-
-    u64* b_pixels_rg = malloc(s->width * s->height * sizeof(u64));
-    u64* b_pixels_ba = malloc(s->width * s->height * sizeof(u64));
-
-    u64* c_pixels_rg = malloc(s->width * s->height * sizeof(u64));
-    u64* c_pixels_ba = malloc(s->width * s->height * sizeof(u64));
-
-    u64* q_pixels_rg = malloc(s->width * s->height * sizeof(u64));
-    u64* q_pixels_ba = malloc(s->width * s->height * sizeof(u64));
-
-
-    for (int i = 0; i < s->width * s->height; i++)
-    {
-        ix_pixels[i] = s->pixels[i]; 
-        iy_pixels[i] = s->pixels[i]; 
-    }
-    int hp[3] = {2, 5, 2};
-    int hd[3] = {-1.0f, 0, 1.0f};
-    Canvas Ix  = {.width = s->width, .height = s->height, .pixels = ix_pixels};
-    Canvas Iy  = {.width = s->width, .height = s->height, .pixels = iy_pixels};
-
-    general_linear_1d_filter(&Ix, hp, 3,    FilterX);
-    general_linear_1d_filter(&Ix, hd, 3,    FilterX);
-
-    general_linear_1d_filter(&Iy, hp, 3,    FilterY);
-    general_linear_1d_filter(&Iy, hd, 3,    FilterY);
-
-
-    for (int i = 0; i < s->width * s->height; i++)
-    {
-        u32 a_channels[4];
-        long_unpack(a_channels, &a_pixels_rg[i], &a_pixels_ba[i]);
-
-        u32 b_channels[4];
-        long_unpack(b_channels, &b_pixels_rg[i], &b_pixels_ba[i]);
-
-        u32 c_channels[4];
-        long_unpack(c_channels, &c_pixels_rg[i], &c_pixels_ba[i]);
-
-        u8 ychannels[4];
-        unpack(ychannels, &Iy.pixels[i]);
-
-        u8 xchannels[4];
-        unpack(xchannels, &Ix.pixels[i]);
-
-        for (int j = 0; j < 3; j++)
-        {
-            a_channels[j] = (((u32)xchannels[j] * xchannels[j]));
-            b_channels[j] = (((u32)ychannels[j] * ychannels[j]));
-            c_channels[j] = (((u32)ychannels[j] * xchannels[j]));
-        }
-        a_pixels_rg[i] = 0;
-        a_pixels_ba[i] = 0;
-
-        b_pixels_rg[i] = 0;
-        b_pixels_ba[i] = 0;
-
-        c_pixels_rg[i] = 0;
-        c_pixels_ba[i] = 0;
-
-        long_pack(a_channels, &a_pixels_rg[i], &a_pixels_ba[i]);
-        long_pack(b_channels, &b_pixels_rg[i], &b_pixels_ba[i]);
-        long_pack(c_channels, &c_pixels_rg[i], &c_pixels_ba[i]);
-    }
-
-    LargeCanvas A = {.width = s->width, .height = s->height, .rg = a_pixels_rg, .ba = a_pixels_ba};
-    LargeCanvas B = {.width = s->width, .height = s->height, .rg = b_pixels_rg, .ba = b_pixels_ba};
-    LargeCanvas C = {.width = s->width, .height = s->height, .rg = c_pixels_rg, .ba = c_pixels_ba};
-
-    long_binomial_filter(&A, 2);
-    long_binomial_filter(&B, 2);
-    long_binomial_filter(&C, 2);
-    
-    (void)A;
-    (void)B;
-    (void)C;
-#if 0
-    for (int i = 0; i < s->width * s->height; i++)
-    {
-        if (A.ba[i] != 0)
-            printf("%lx, %lx\n", A.rg[i], A.ba[i]);
-    }
-#endif
-
-
-    for (int i = 0; i < s->width * s->height; i++)
-    {
-
-        u32 a_channels[4];
-        long_unpack(a_channels, &a_pixels_rg[i], &a_pixels_ba[i]);
-
-        u32 b_channels[4];
-        long_unpack(b_channels, &b_pixels_rg[i], &b_pixels_ba[i]);
-
-        u32 c_channels[4];
-        long_unpack(c_channels, &c_pixels_rg[i], &c_pixels_ba[i]);
-
-        u32 q_channels[4];
-        long_unpack(q_channels, &q_pixels_rg[i], &q_pixels_ba[i]);
-
-        for (int j = 0; j < 3; j++)
-        {
-            q_channels[j] = 
-                fmax((a_channels[j] * b_channels[j]) -
-                (c_channels[j] * c_channels[j]) -
-                (alpha * ((a_channels[j] + b_channels[j])*
-                                 (a_channels[j] + b_channels[j]))), 0);
-        }
-        q_pixels_rg[i] = 0;
-        q_pixels_ba[i] = 0;
-        long_pack(q_channels, &q_pixels_rg[i], &q_pixels_ba[i]);
-    }
-    for (int i = 0; i < s->width * s->height; i++)
-    {
-        u32 q_channels[4];
-        long_unpack(q_channels, &q_pixels_rg[i], &q_pixels_ba[i]);
-        int cond = check_max_pixel_large(q_pixels_rg, q_pixels_ba, s->width, s->height, i % s->width, i / s->width);
-        int cond2 = 0;
-        for (int j = 0; j < 3; j++)
-        {
-            cond2 |= (q_channels[j] >= threshold);
-        }
-        if (cond && cond2)
-        {
-            fill_circle(s, i % s->width, i / s->width, 5, RED);
-            //point(s, i % s->width, i / s->width, RED);
-        }
-    }
-    printf("%d\n",check_max_pixel_large(q_pixels_rg, q_pixels_ba, s->width, s->height, 
-                s->width/2 + 50, s->height/2));
-    printf("%lx, %lx\n",
-            (q_pixels_rg[s->height/2 * s->width + s->width/2]),
-            (q_pixels_ba[s->height/2 * s->width + s->width/2]));
-
-}
-
-int check_max_pixel(u32* pixels, int w, int h, int x, int y)
-{
-
-    int low_x = (-1) * (x != 0);
-    int high_x = (x != (w-1));
-
-    int low_y = (-1) * (y != 0);
-    int high_y = (y != h - 1);
-
-    int cond = 1;
-    u8 main_channels[4];
-    unpack(main_channels, &pixels[y * w + x]);
-
-    int temp_cond = 0;
-    for (int yy = low_y; yy < high_y + 1; yy++)
-    {
-        for (int xx = low_x; xx < high_x + 1; xx++)
-        {
-            temp_cond = 0;
-            u8 temp_channels[4];
-            unpack(temp_channels, &pixels[(y + yy) * w + (x + xx)]);
-            for (int j = 0; j < 3; j++)
-            {
-               temp_cond |= (main_channels[j] >= temp_channels[j]);
-            }
-            cond &= temp_cond;
-            if (cond == 0) return 0;
-        }
-    }
-    return 1;
-}
-
-int check_max_pixel_large(u64* rg, u64* ba, int w, int h, int x, int y)
-{
-
-    int low_x = (-1) * (x != 0);
-    int high_x = (x != (w-1));
-
-    int low_y = (-1) * (y != 0);
-    int high_y = (y != h - 1);
-
-    int cond = 1;
-    u32 main_channels[4];
-    long_unpack(main_channels, &rg[y * w + x], &ba[y * w + x]);
-
-    int temp_cond = 0;
-    for (int yy = low_y; yy < high_y + 1; yy++)
-    {
-        for (int xx = low_x; xx < high_x + 1; xx++)
-        {
-            temp_cond = 0;
-            u32 temp_channels[4];
-            long_unpack(temp_channels, &rg[(y + yy) * w + (x + xx)], &ba[(y + yy) * w + (x + xx)]);
-            for (int j = 0; j < 3; j++)
-            {
-               temp_cond |= ((u16)main_channels[j] >= (u16)temp_channels[j]);
-            }
-            cond &= temp_cond;
-            if (cond == 0) return 0;
-        }
-    }
-    return 1;
-}

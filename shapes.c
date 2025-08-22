@@ -315,14 +315,22 @@ void fill_circle(Canvas* canvas, int x, int y, int r, u32 colour)
     {
         for (int n = -i; n < i + 1; n++)
         {
+            if (n+x < canvas->width && (j + y) < canvas->height)
+            {
             mix_colour(&canvas->pixels[(j + y) * canvas->width + n + x] , colour);
+            }
+            if (n+x < canvas->width && (y - j + 1) < canvas->height)
             mix_colour(&canvas->pixels[(y - j + 1) * canvas->width + n + x] , colour);
         }
         for (int n = j; n < -(j - 1); n++)
         {
             if (oldi != i)
             {
+                if (n+x < canvas->width && (i + y) < canvas->height)
+                {
                 mix_colour(&canvas->pixels[(i + y) * canvas->width + n + x] , colour);
+                }
+                if (n+x < canvas->width && (y - i + 1) < canvas->height)
                 mix_colour(&canvas->pixels[(y - i + 1) * canvas->width + n + x] , colour);
             }
         }

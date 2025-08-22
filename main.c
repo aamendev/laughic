@@ -376,6 +376,8 @@ void processing_showcase(Canvas* c)
     fill_circle(c, WIDTH/2, HEIGHT/2 + 2*r, r, PALE_GREEN);
     grey_scale(c);
     save(c, JPG, "./imgs/processing/grey_scale");
+
+
 }
 
 void filters_showcase(Canvas* c)
@@ -448,8 +450,22 @@ void filters_showcase(Canvas* c)
     canny_filter(c, 0x02, 0x20);
     save(c, JPG, "./imgs/filters/canny");
 
+
 }
 
+void new_processing(Canvas* c)
+{
+
+    fill(c,BLACK);
+    fill_rect(c, c->width/2, c->height/2, 50, 50, BLUE);
+    rect(c, c->width/2, c->height/2, 50, 50, WHITE);
+    harris_filter(c, 0.07f, 2e4);
+    save(c, JPG, "./imgs/filters/harris");
+
+    read_to_canvas(c, "./assets/levi.jpg");
+    translate(c, -c->width/2, c->height/2);
+    save(c, JPG, "./imgs/processing/translate");
+}
 void npr_curve(Canvas* c)
 {
     int spline_offset_x = c->width / 8;
@@ -849,9 +865,10 @@ void bounded(Canvas* c)
 int main()
 {
     srand(time(NULL));
-    all_tests();
+    //all_tests();
 
-    fill(&canvas, BG);
+    new_processing(&canvas);
+    //fill(&canvas, BG);
     //filters_showcase(&canvas);
     //raytrace(&canvas);
     //intensity_ramp(&canvas);

@@ -28,6 +28,15 @@ typedef struct Canvas
    size_t height;
 } Canvas;
 
+typedef struct LargeCanvas
+{
+   const char* name;
+   u64* rg;
+   u64* ba;
+   size_t width;
+   size_t height;
+} LargeCanvas;
+
 typedef struct Texture
 {
     const char* path;
@@ -38,7 +47,9 @@ typedef struct Texture
 
 void mix_component(u8* c1, u8 c2, u8 a);
 void unpack(u8* , u32*);
+void long_unpack(u32* comp, u64* rg, u64* ba);
 void pack(u8* comp, u32* c);
+void long_pack(u32* comp, u64* rg, u64* ba);
 void mix_colour(u32* c1, u32 c2);
 u32 complement(u32 colour);
 void resize(Texture* src, u32 wn, u32 hn, u32** dst);

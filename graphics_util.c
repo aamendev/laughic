@@ -20,6 +20,32 @@ void signed_pack(i16* comp, i64* c)
     }
 }
 
+void long_pack(u32* comp, u64* rg, u64* ba)
+{
+    for (int i = 0; i < 2; i++)
+    {
+        *rg |= (comp[i]<<(32 * i));
+    }
+
+    for (int i = 2; i < 4; i++)
+    {
+        *ba |= (comp[i]<<(32 * i));
+    }
+}
+void long_unpack(u32* comp, u64* rg, u64* ba)
+{
+
+    for (int i = 0; i < 2; i++)
+    {
+        comp[i] = (*rg >> (32 * i)) &0xffffffff;
+    }
+    for (int i = 2; i < 4; i++)
+    {
+        comp[i] = (*ba >> (32 * i)) &0xffffffff;
+    }
+}
+
+
 void signed_to_unsigned(i64* sgn, u32* un)
 {
    i16 sgn_comp[4] = {0,0,0,0}; 
