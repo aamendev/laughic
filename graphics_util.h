@@ -1,5 +1,9 @@
 #include <stdlib.h>
+#include <math.h>
+#include <string.h>
 #include "types.h"
+#include "stb_image.h"
+#include "./stb_image_write.h"
 #ifndef GRAPHICSUTIL
 #define GRAPHICSUTIL
 
@@ -82,4 +86,9 @@ i8 compare_with_comps(u32 c, u8 t);
 void get_line_normal(Line* l, ParametricLine* normal);
 void line_to_parametric(Line* l, ParametricLine* pl);
 void parametric_to_line(ParametricLine* pl, Line* l);
+
+// Canvas
+void read_to_canvas(Canvas* c, char* path);
+void read_texture(Texture* tex);
+int save_to_img(Canvas* canvas, Format format, char* dst);
 #endif

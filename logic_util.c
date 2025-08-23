@@ -84,3 +84,4 @@ void inplace_max(u32* a, u32 b)
 {
     *a = *a * (*a > b) + b * !(*a > b);
 }
+

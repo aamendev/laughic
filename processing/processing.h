@@ -1,7 +1,8 @@
 #ifndef PROCESSING_H
 #define PROCESSING_H
-#include "graphics_util.h"
-#include "shapes.h"
+#include "../graphics_util.h"
+#include "../colours.h"
+#include "../shapes.h"
 
 // Modifiers
 void translate(Canvas* c, i32 valx, i32 valy);
@@ -28,6 +29,7 @@ typedef enum FilterDirection
     FilterY
 } FilterDirection;
 
+// generic helpers
 void signed_general_linear_1d_filter(i64* s, u32 w, u32 h, i32* h1, u32 s1, FilterDirection);
 void general_linear_1d_filter(Canvas* s, i32* h1, u32 s1, FilterDirection);
 void long_general_linear_1d_filter(LargeCanvas* s, i32* h1, u32 s1, FilterDirection);
@@ -38,7 +40,13 @@ void long_linear_separated_filter(LargeCanvas* s, i32* h1, u32 s1, i32* h2, u32 
 
 void signed_general_linear_separated_filter(Canvas* s, i32* h1, u32 s1, i32* h2, u32 s2);
 void general_2d_generic_operator_filter(Canvas* s, i32* h1, u32 s1, 
-        u32 val_init, i32 normalize_factor, void (*op)(u32* a, u32 b));
+        u32 val_init, i32 normalize_factor, void (*op)(u32* a, u32 b, i32* h1, u32 s1));
+void s_general_2d_generic_operator_filter(
+i64* s, u32 width, u32 height, i32* h1, u32 s1, 
+        i64 val_init, i32 normalize_factor, void (*op)(i64* a, i64 b, i32* h1, u32 s1)
+        );
+// end generic helpers
+
 void jitter_1d_filter(Canvas* s, u32 s1, FilterDirection fd);
 void jitter_2d_filter(Canvas* s, u32 s1);
 void box_filter(Canvas* s, u32 dim);
@@ -56,8 +64,10 @@ void canny_filter(Canvas* s, u8 t_low, u8 t_high);
 void sharpen(Canvas* s, float sharpen_factor);
 void harris_filter(Canvas* s, float alpha, float threshold);
 
+void dilate(Canvas* s, i32* dilate_kernel, u32 k_width);
+void erode(Canvas* s, i32* erode_kernel, u32 k_width);
+
 // Helpers
-//
 u8 canny_get_orientation(i64 dx, i64 dy);
 u8 canny_is_local_max(u32* mag, u32 w, u32 x, u32 y, u32 orientation, u8 t_lo);
 void canny_trace_contour(u32* maximas, u32* mag,

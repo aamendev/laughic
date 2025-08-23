@@ -1,6 +1,3 @@
-#include "types.h"
-#include <math.h>
-#include <stdio.h>
 #include "./graphics_util.h"
 
 
@@ -53,7 +50,8 @@ void signed_to_unsigned(i64* sgn, u32* un)
    signed_unpack(sgn_comp, sgn);
    for (int i = 0; i < 4; i++)
    {
-        un_comp[i] = (u8)sgn_comp[i] * (sgn_comp[i] > -1); 
+        un_comp[i] = (u8)sgn_comp[i] * (sgn_comp[i] > -1 && sgn_comp[i] < 256)
+            + 255 * (sgn_comp[i] > 255); 
    }
    *un = 0;
    pack(un_comp, un);
@@ -345,4 +343,49 @@ void parametric_to_line(ParametricLine* pl, Line* l)
 
     l->x1 = l->x0 + pl->t * pl->dx;
     l->y1 = l->y0 + pl->t * pl->dy;
+}
+
+
+void read_to_canvas(Canvas* c, char* path)
+{
+    int w, h, channels;
+    stbi_uc* data = stbi_load(path, &w, &h, &channels, STBI_rgb_alpha);
+    u32* colour = (u32*)malloc(w * h * sizeof(u32));
+    memcpy(colour, data, w * h * sizeof(u32));
+    stbi_image_free(data);
+
+    c->pixels = colour;
+    c->width = w;
+    c->height = h;
+}
+
+void read_texture(Texture* tex)
+{
+    int w, h, channels;
+    stbi_uc* data = stbi_load(tex->path, &w, &h, &channels, STBI_rgb_alpha);
+    u32* colour = (u32*)malloc(w * h * sizeof(u32));
+    memcpy(colour, data, w * h * sizeof(u32));
+    stbi_image_free(data);
+
+    tex->data = colour;
+    tex->width = w;
+    tex->height = h;
+}
+
+int save_to_img(Canvas* canvas, Format format, char* dst)
+{
+    switch (format)
+    {
+        case PNG:
+        {
+            return stbi_write_png(dst, canvas->width, canvas->height, 4, canvas->pixels, canvas->width * 4);
+        }
+        break;
+        case JPG:
+        {
+            return stbi_write_jpg(dst, canvas->width, canvas->height, 4, canvas->pixels, canvas->width * 4);
+        }
+        default:
+            return -1;
+    }
 }

@@ -1,9 +1,6 @@
 #include "processing.h"
-#include "colours.h"
-#include "logic_util.h"
-#include <stdint.h>
-#include <stdio.h>
-#include <time.h>
+#include "processing_utils.h"
+#include <limits.h>
 
 void translate(Canvas* c, i32 valx, i32 valy)
 {
@@ -185,7 +182,7 @@ void grey_scale(Canvas *c)
 
 void general_2d_generic_operator_filter(Canvas* s, i32* h1, u32 s1, u32 val_init,
         i32 normalize_factor,
-        void (*op)(u32* a, u32 b))
+        void (*op)(u32* a, u32 b, i32* h1, u32 s1))
 {
     u32 oldCanvas[s->width*s->height];
     i32 c1 = s1/2;
@@ -231,7 +228,7 @@ void general_2d_generic_operator_filter(Canvas* s, i32* h1, u32 s1, u32 val_init
                 unpack(comps, &curr_cell);
                 for (int k = 0; k < 4; k++)
                 {
-                    op(&vals[k], h1[(c1 + v) * s1 + c1 + u] * comps[k]);
+                    op(&vals[k], h1[(c1 + v) * s1 + c1 + u] * comps[k], h1, s1);
                 }
                 }
             }
@@ -242,6 +239,71 @@ void general_2d_generic_operator_filter(Canvas* s, i32* h1, u32 s1, u32 val_init
             }
             s->pixels[j * (s->width) + i] = 0;
             pack(comps, &(s->pixels[j * (s->width) + i]));
+        }
+    }
+}
+
+void s_general_2d_generic_operator_filter(
+i64* s, u32 width, u32 height, i32* h1, u32 s1, 
+        i64 val_init, i32 normalize_factor, void (*op)(i64* a, i64 b, i32* h1, u32 s1)
+        )
+{
+    i64* oldCanvas = malloc(sizeof(i64) * width * height);
+    i32 c1 = s1/2;
+    i64 curr_cell = 0;
+    f32 norm1 = 0;
+    i16 comps[4];
+    i64 vals[4] = {0, 0, 0, 0};
+    int add1 = 0;
+    int add2 = 0;
+
+    if (normalize_factor == 0)
+    {
+    for (int i = 0; i < s1; i++)
+    {
+        norm1 += abs(h1[i]);
+    }
+    norm1 = 1.0f/norm1;
+    }
+    else {
+    norm1 = normalize_factor;
+    }
+
+    for (int i = 0; i < width * height; i++)
+    {
+        oldCanvas[i] = s[i];
+    }
+    for (int j = 0; j < height; j++)
+    {
+        for (int i = 0; i < width; i++)
+        {
+            for (int v = 0; v < 4; v++)
+            {
+                vals[v] = val_init;
+            }
+            for (int u = -c1; u < c1 + (s1 % 2 == 1); u++)
+            {
+                add1 = u * (i + u > -1 && i+u < width);
+                for (int v = -c1; v< c1 + (s1 %2 == 1); v++)
+                {
+                add2 = v * (j + v > -1 && j+v < height);
+
+                curr_cell = oldCanvas[(j + add2) * (width) + i + add1];
+                signed_unpack(comps, &curr_cell);
+                for (int k = 0; k < 4; k++)
+                {
+                    op(&vals[k], h1[(c1 + v) * s1 + c1 + u] + comps[k], h1, 
+                            (c1 + v) * s1 + c1 + u);
+                }
+                }
+            }
+            for (int v = 0; v < 4; v++)
+            {
+                vals[v] *= norm1;
+                comps[v] = vals[v];
+            }
+            s[j * (width) + i] = 0;
+            signed_pack(comps, &(s[j * (width) + i]));
         }
     }
 }
@@ -550,7 +612,7 @@ void min_filter(Canvas *s, u32 dim)
     {
         h[k] = 1;
     }
-    general_2d_generic_operator_filter(s, h, dim, UINT32_MAX, 1, inplace_min);
+    general_2d_generic_operator_filter(s, h, dim, UINT32_MAX, 1, p_generic_inplace_min);
     free(h);
 }
 void max_filter(Canvas *s, u32 dim)
@@ -560,7 +622,7 @@ void max_filter(Canvas *s, u32 dim)
     {
         h[k] = 1;
     }
-    general_2d_generic_operator_filter(s, h, dim, 0, 1, inplace_max);
+    general_2d_generic_operator_filter(s, h, dim, 0, 1, p_generic_inplace_max);
     free(h);
 }
 
@@ -823,8 +885,9 @@ void default_line_floyd_steinberg(Canvas *s, u32 threshold)
 {
     grey_scale(s);
     u32 dim = 5;
-    i32 x_off = -10;
-    i32 y_off = 5;
+    i32 fac = 7;
+    i32 x_off = -2 * fac;
+    i32 y_off = 1 * fac;
     u8* d = malloc(dim * sizeof(u8));
     for (int i = 0; i < dim; i++)
     {
@@ -832,6 +895,7 @@ void default_line_floyd_steinberg(Canvas *s, u32 threshold)
     }
     line_floyd_steinberg(s, d, dim, x_off, y_off, threshold);
     free(d);
+    invert(s);
 }
 void default_grey_scale_floyd_steinberg(Canvas* s)
 {
@@ -1268,4 +1332,37 @@ int check_max_pixel_large(u64* rg, u64* ba, int w, int h, int x, int y)
         }
     }
     return 1;
+}
+
+void dilate(Canvas* s, i32* dilate_kernel, u32 k_width)
+{
+    i64* signed_copy = malloc(sizeof(i64) * s->width * s->height);
+    for (int i = 0; i < s->width * s->height; i++)
+    {
+        unsigned_to_signed(&signed_copy[i], &s->pixels[i]);
+    }
+    s_general_2d_generic_operator_filter(signed_copy, s->width, s->height,
+            dilate_kernel, k_width, -INT_MAX, 1, p_s_generic_inplace_max);
+
+    for (int i = 0; i < s->width * s->height; i++)
+    {
+        signed_to_unsigned(&signed_copy[i], &s->pixels[i]);
+    }
+}
+
+void erode(Canvas* s, i32* erode_kernel, u32 k_width)
+{
+
+    i64* signed_copy = malloc(sizeof(i64) * s->width * s->height);
+    for (int i = 0; i < s->width * s->height; i++)
+    {
+        unsigned_to_signed(&signed_copy[i], &s->pixels[i]);
+    }
+    s_general_2d_generic_operator_filter(signed_copy, s->width, s->height,
+            erode_kernel, k_width, INT_MAX, 1, p_s_generic_inplace_min);
+
+    for (int i = 0; i < s->width * s->height; i++)
+    {
+        signed_to_unsigned(&signed_copy[i], &s->pixels[i]);
+    }
 }

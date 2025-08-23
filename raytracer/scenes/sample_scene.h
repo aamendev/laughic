@@ -12,7 +12,7 @@
 #include "../../math/traceable.h"
 #include "../../math/vector3d.h"
 #include "../../managers/scene.h"
-#include "../../processing.h"
+#include "../../processing/processing.h"
 #include "../../samplers/jittered.h"
 #include "../../samplers/sampler.h"
 #include "../../colours.h"

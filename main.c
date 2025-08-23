@@ -2,16 +2,14 @@
 #include "./bspline_modify_util.h"
 //#include <errno.h>
 #include <stdint.h>
-#include <string.h>
 #include <time.h>
-#include "./stb_image.h"
-#include "./stb_image_write.h"
 #include "./shapes.h"
 #include "./newton_fractals.h"
 #include "logic_util.h"
+#include "processing/processing_tests.h"
 #include "spline_samples.h"
 #include "math/vector3d.h"
-#include "processing.h"
+#include "processing/processing.h"
 #include "colours.h"
 #include "raytracer/scenes/sample_scene.h"
 #include "./experiments/noise_texture.h"
@@ -38,30 +36,6 @@ typedef enum
 
 u32 pixels[WIDTH * HEIGHT];
 Canvas canvas = { BG, "default", pixels, WIDTH, HEIGHT };
-void read_texture(Texture* tex)
-{
-    int w, h, channels;
-    stbi_uc* data = stbi_load(tex->path, &w, &h, &channels, STBI_rgb_alpha);
-    u32* colour = (u32*)malloc(w * h * sizeof(u32));
-    memcpy(colour, data, w * h * sizeof(u32));
-    stbi_image_free(data);
-
-    tex->data = colour;
-    tex->width = w;
-    tex->height = h;
-}
-void read_to_canvas(Canvas* c, char* path)
-{
-    int w, h, channels;
-    stbi_uc* data = stbi_load(path, &w, &h, &channels, STBI_rgb_alpha);
-    u32* colour = (u32*)malloc(w * h * sizeof(u32));
-    memcpy(colour, data, w * h * sizeof(u32));
-    stbi_image_free(data);
-
-    c->pixels = colour;
-    c->width = w;
-    c->height = h;
-}
 
 /* Unused in show case;
  * Need to Handle Bary and Texture Modes
@@ -138,23 +112,6 @@ void draw(Canvas* canvas, u32 colour, void* data, u32 count, u32 stride, DrawMod
 }
 
 
-int save(Canvas* canvas, Format format, char* dst)
-{
-    switch (format)
-    {
-        case PNG:
-        {
-            return stbi_write_png(dst, canvas->width, canvas->height, 4, canvas->pixels, WIDTH * 4);
-        }
-        break;
-        case JPG:
-        {
-            return stbi_write_jpg(dst, canvas->width, canvas->height, 4, canvas->pixels, WIDTH * 4);
-        }
-        default:
-            return -1;
-    }
-}
 void showcase(Canvas* canvas)
 {
     Texture earth = {"./assets/8k_earth_daymap.jpg", NULL, 0, 0};
@@ -256,7 +213,7 @@ void raytrace(Canvas* canvas)
 {
     rect_scene(canvas);
     //test_scene(canvas);
-    save(canvas, JPG, "./imgs/raytracer/new_light");
+    save_to_img(canvas, JPG, "./imgs/raytracer/new_light");
 }
 
 
@@ -335,47 +292,47 @@ void processing_showcase(Canvas* c)
     fill(c, BG);
     fill_circle(c, WIDTH/2, HEIGHT/2, r, RED);
     fill_circle(c, WIDTH/2, HEIGHT/2 + 2*r, r, BLUE);
-    save(c, JPG, "./imgs/processing/org");
+    save_to_img(c, JPG, "./imgs/processing/org");
     mult_contrast(c, 0.2); 
-    save(c, JPG, "./imgs/processing/contr");
+    save_to_img(c, JPG, "./imgs/processing/contr");
     mult_contrast(c, 1.0f/0.2);
-    save(c, JPG, "./imgs/processing/recontr");
+    save_to_img(c, JPG, "./imgs/processing/recontr");
     inc_brightness(c, 10);
-    save(c, JPG, "./imgs/processing/firstInc");
+    save_to_img(c, JPG, "./imgs/processing/firstInc");
     inc_brightness(c, 30);
-    save(c, JPG, "./imgs/processing/secondInc");
+    save_to_img(c, JPG, "./imgs/processing/secondInc");
     inc_brightness(c, -40);
-    save(c, JPG, "./imgs/processing/restoreBright");
+    save_to_img(c, JPG, "./imgs/processing/restoreBright");
     invert(c); 
-    save(c, JPG, "./imgs/processing/invert");
+    save_to_img(c, JPG, "./imgs/processing/invert");
     invert(c); 
-    save(c, JPG, "./imgs/processing/restoreInvert");
+    save_to_img(c, JPG, "./imgs/processing/restoreInvert");
     filter(c, ChannelBlue);
-    save(c, JPG, "./imgs/processing/blueFilter");
+    save_to_img(c, JPG, "./imgs/processing/blueFilter");
     fill_circle(c, WIDTH/2, HEIGHT/2 + 2*r, r, BLUE);
     filter(c, ChannelRed);
-    save(c, JPG, "./imgs/processing/redFilter");
+    save_to_img(c, JPG, "./imgs/processing/redFilter");
     fill_circle(c, WIDTH/2, HEIGHT/2, r, RED);
     clamp_channel(c, ChannelBlue, 127, 255);
-    save(c, JPG, "./imgs/processing/changeMinBlue");
+    save_to_img(c, JPG, "./imgs/processing/changeMinBlue");
     clamp_channel(c, ChannelRed, 127, 255);
-    save(c, JPG, "./imgs/processing/changeMinRed");
+    save_to_img(c, JPG, "./imgs/processing/changeMinRed");
 
     // Restore
     fill(c, BG);
     fill_circle(c, WIDTH/2, HEIGHT/2, r, PALE_RED);
     fill_circle(c, WIDTH/2, HEIGHT/2 + 2*r, r, PALE_GREEN);
     inc_channel(c, ChannelRed, 127);
-    save(c, JPG, "./imgs/processing/reddishStuff");
+    save_to_img(c, JPG, "./imgs/processing/reddishStuff");
     inc_channel(c, ChannelRed, -127);
     inc_channel(c, ChannelBlue, 28);
-    save(c, JPG, "./imgs/processing/bluishStuff");
+    save_to_img(c, JPG, "./imgs/processing/bluishStuff");
 
     fill(c, BG);
     fill_circle(c, WIDTH/2, HEIGHT/2, r, PALE_RED);
     fill_circle(c, WIDTH/2, HEIGHT/2 + 2*r, r, PALE_GREEN);
     grey_scale(c);
-    save(c, JPG, "./imgs/processing/grey_scale");
+    save_to_img(c, JPG, "./imgs/processing/grey_scale");
 
 
 }
@@ -386,69 +343,69 @@ void filters_showcase(Canvas* c)
     fill(c, BG);
     fill_circle(c, WIDTH/2, HEIGHT/2, r, RED);
     fill_circle(c, WIDTH/2, HEIGHT/2 + 2*r, r, BLUE);
-    save(c, JPG, "./imgs/filters/org");
+    save_to_img(c, JPG, "./imgs/filters/org");
     i32 linear[3] = {1, 1, 1};
     general_linear_separated_filter(c, linear, 3, linear, 3);
-    save(c, JPG, "./imgs/filters/linear_1");
+    save_to_img(c, JPG, "./imgs/filters/linear_1");
 
     fill(c, BG);
     fill_circle(c, WIDTH/2, HEIGHT/2, r, RED);
     fill_circle(c, WIDTH/2, HEIGHT/2 + 2*r, r, BLUE);
     box_filter(c, 5);
-    save(c, JPG, "./imgs/filters/linear_2");
+    save_to_img(c, JPG, "./imgs/filters/linear_2");
 
     fill(c, BG);
     fill_circle(c, WIDTH/2, HEIGHT/2, r, RED);
     fill_circle(c, WIDTH/2, HEIGHT/2 + 2*r, r, BLUE);
     binomial_filter(c, 1);
-    save(c, JPG, "./imgs/filters/binomial_1");
+    save_to_img(c, JPG, "./imgs/filters/binomial_1");
 
     fill(c, BG);
     fill_circle(c, WIDTH/2, HEIGHT/2, r, RED);
     fill_circle(c, WIDTH/2, HEIGHT/2 + 2*r, r, BLUE);
     binomial_filter(c, 3);
-    save(c, JPG, "./imgs/filters/binomial_2");
+    save_to_img(c, JPG, "./imgs/filters/binomial_2");
 
     fill(c, BG);
     fill_circle(c, WIDTH/2, HEIGHT/2, r, RED);
     fill_circle(c, WIDTH/2, HEIGHT/2 + 2*r, r, BLUE);
     min_filter(c, 3);
-    save(c, JPG, "./imgs/filters/min");
+    save_to_img(c, JPG, "./imgs/filters/min");
 
     fill(c, BG);
     fill_circle(c, WIDTH/2, HEIGHT/2, r, RED);
     fill_circle(c, WIDTH/2, HEIGHT/2 + 2*r, r, BLUE);
     max_filter(c, 3);
-    save(c, JPG, "./imgs/filters/max");
+    save_to_img(c, JPG, "./imgs/filters/max");
 
     fill(c, BG);
     fill_circle(c, WIDTH/2, HEIGHT/2, r, RED);
     fill_circle(c, WIDTH/2, HEIGHT/2 + 2*r, r, BLUE);
     jitter_filter(c, 10);
-    save(c, JPG, "./imgs/filters/jitter");
+    save_to_img(c, JPG, "./imgs/filters/jitter");
 
     fill(c, BG);
     fill_circle(c, WIDTH/2, HEIGHT/2, r, RED);
     fill_circle(c, WIDTH/2, HEIGHT/2 + 2*r, r, BLUE);
     sobel_filter(c);
-    save(c, JPG, "./imgs/filters/sobel2");
+    save_to_img(c, JPG, "./imgs/filters/sobel2");
     (void)r;
 
     
     read_to_canvas(c, "./assets/levi.jpg");
     jitter_filter(c, 10);
-    save(c, JPG, "./imgs/filters/jitter2");
+    save_to_img(c, JPG, "./imgs/filters/jitter2");
     free(c->pixels);
 
     read_to_canvas(c, "./assets/levi.jpg");
     sobel_filter(c);
-    save(c, JPG, "./imgs/filters/sobel1");
+    save_to_img(c, JPG, "./imgs/filters/sobel1");
     
 
     
     read_to_canvas(c, "./assets/levi.jpg");
     canny_filter(c, 0x02, 0x20);
-    save(c, JPG, "./imgs/filters/canny");
+    save_to_img(c, JPG, "./imgs/filters/canny");
 
 
 }
@@ -460,11 +417,11 @@ void new_processing(Canvas* c)
     fill_rect(c, c->width/2, c->height/2, 50, 50, BLUE);
     rect(c, c->width/2, c->height/2, 50, 50, WHITE);
     harris_filter(c, 0.07f, 2e4);
-    save(c, JPG, "./imgs/filters/harris");
+    save_to_img(c, JPG, "./imgs/filters/harris");
 
     read_to_canvas(c, "./assets/levi.jpg");
     translate(c, -c->width/2, c->height/2);
-    save(c, JPG, "./imgs/processing/translate");
+    save_to_img(c, JPG, "./imgs/processing/translate");
 }
 void npr_curve(Canvas* c)
 {
@@ -600,27 +557,25 @@ void npr_curve(Canvas* c)
        test_spline.x_coeffs[i] -= 100; 
     }
     //bspline_lina(c, &sb, test_spline.x_coeffs[0], test_spline.y_coeffs[0]);
-    save(c, JPG, "./imgs/npr/curve2");
+    save_to_img(c, JPG, "./imgs/npr/curve2");
 }
 void npr_processing(Canvas* c)
 {
     read_to_canvas(c, "./assets/levi.jpg");
     default_ordered_dithering(c);
-    save(c, JPG, "./imgs/npr/dither");
+    save_to_img(c, JPG, "./imgs/npr/dither");
     read_to_canvas(c, "./assets/levi.jpg");
     default_floyd_steinberg(c);
-    save(c, JPG, "./imgs/npr/floyd_stienberg");
-   // default_grey_scale_floyd_steinberg(c);
-    read_to_canvas(c, "./assets/levi.jpg");
-    default_line_floyd_steinberg(c, 70);
-    save(c, JPG, "./imgs/npr/line_floyd_steinberg");
+    save_to_img(c, JPG, "./imgs/npr/floyd_stienberg");
+
+    processing_all_tests(c);
 }
 void npr_test(Canvas* c)
 {
     read_to_canvas(c, "./assets/ramp");
     //default_grey_scale_ordered_dithering(c);
     default_grey_scale_floyd_steinberg(c);
-    save(c, JPG, "./imgs/npr/dither");
+    save_to_img(c, JPG, "./imgs/npr/dither");
 }
 void intensity_ramp(Canvas* c)
 {
@@ -640,7 +595,7 @@ void intensity_ramp(Canvas* c)
         pack(comps, &current_col);
         line(c, i, 0, i, c->height - 1, current_col);
     }
-    save(c, JPG, "./assets/ramp");
+    save_to_img(c, JPG, "./assets/ramp");
 }
 void run_exp(Canvas* c)
 {
@@ -661,7 +616,7 @@ void run_exp(Canvas* c)
         pack(comps, &c->pixels[i]);
     }
     free(data);
-    save(c, JPG, "./imgs/experiments/noise");
+    save_to_img(c, JPG, "./imgs/experiments/noise");
 }
 
 void curve_exp(Canvas* c)
@@ -741,7 +696,7 @@ void curve_exp(Canvas* c)
     
     bspline(c, &test_spline, &sb);
 
-    save(c, JPG, "./imgs/curves/curve");
+    save_to_img(c, JPG, "./imgs/curves/curve");
 }
 
 void npr_path_style_sample(Canvas* c)
@@ -848,7 +803,7 @@ void npr_path_style_sample(Canvas* c)
             &r_opt, bspline_mid_width_modify);
     (void) s_wiggle_opt;
 
-    save(c, JPG, "./imgs/npr/ps1");
+    save_to_img(c, JPG, "./imgs/npr/ps1");
 }
 void bounded(Canvas* c)
 {
@@ -860,19 +815,19 @@ void bounded(Canvas* c)
         .t = 1,
     };
     bounded_circle(c, &circ, &pl, RED);
-    save(c, JPG, "./imgs/npr/bounded_circle");
+    save_to_img(c, JPG, "./imgs/npr/bounded_circle");
 }
 int main()
 {
     srand(time(NULL));
     //all_tests();
 
-    new_processing(&canvas);
+    //new_processing(&canvas);
     //fill(&canvas, BG);
     //filters_showcase(&canvas);
     //raytrace(&canvas);
     //intensity_ramp(&canvas);
-    //npr_processing(&canvas);
+    npr_processing(&canvas);
     //curve_exp(&canvas);
     //npr_path_style_sample(&canvas);
   //  bounded(&canvas);

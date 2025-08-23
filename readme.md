@@ -26,9 +26,23 @@ Some builtin image processing abilities.
 ![showcase sobel](./imgs/filters/sobel1)
 #### Canny
 ![showcase Cany](./imgs/filters/canny)
+#### Canny + Sharpen
+![showcase Sharpen](./imgs/filters/sharpen)
+#### Harris (corner Detection)
+![showcase harris](./imgs/filters/harris)
+#### Line Floyd Steinberg (line hatching)
+![showcase LFS](./imgs/npr/line_hatch)
+
 
 #### GreyScale
 ![showcase grey](./imgs/processing/grey_scale)
+
+#### Morphological
+##### dilation
+![showcase dilate](./imgs/filters/dilate)
+##### erosion
+![showcase erode](./imgs/filters/erode)
+
 #### Colour Manipulation
 Colors can be manipulated through numerous ways (e.g. inverting colours, clamping a certain channel to min or max values, or filtering regions within certain ranges of any colour channel)
 ##### colour inversion
