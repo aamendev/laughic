@@ -126,6 +126,7 @@ TreeNode* bt_get(BinaryTree* root, char* key)
     return NULL;
 }
 
+
 void bt_print_tree(BinaryTree* root, void(*value_print)(void*))
 {
     if (root == NULL) return;

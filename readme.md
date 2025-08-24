@@ -33,6 +33,8 @@ Some builtin image processing abilities.
 #### Line Floyd Steinberg (line hatching)
 ![showcase LFS](./imgs/npr/line_hatch)
 
+#### Colour Quantization
+![showcase quantize](./imgs/processing/quantized)
 
 #### GreyScale
 ![showcase grey](./imgs/processing/grey_scale)

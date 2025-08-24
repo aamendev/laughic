@@ -16,6 +16,10 @@ int rand_int_bound(i32 min, i32 max);
 void inplace_min(u32* a, u32 b);
 void inplace_max(u32* a, u32 b);
 
+// Common comp
+i32 u32_comp(void* v1, void* v2);
+i32 i32_comp(void* v1, void* v2);
+
 #ifndef PI
 #define PI (3.1415926535)
 #endif

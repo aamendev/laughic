@@ -31,6 +31,11 @@ typedef struct Canvas
    size_t width;
    size_t height;
 } Canvas;
+typedef struct ColourHistogramBar
+{
+    u32 col;
+    u32 count;
+} ColourHistogramBar;
 
 typedef struct LargeCanvas
 {
@@ -73,6 +78,8 @@ void set_opacity(u32* col, u8 val);
 void set_channel(u32* col, u8 val, Channel channel);
 u8 get_channel(u32* col, Channel channel);
 
+f32 colour_distance(u32 col1, u32 col2);
+
 // Signed
 
 void signed_unpack(i16* comp, i64* c);
@@ -91,4 +98,6 @@ void parametric_to_line(ParametricLine* pl, Line* l);
 void read_to_canvas(Canvas* c, char* path);
 void read_texture(Texture* tex);
 int save_to_img(Canvas* canvas, Format format, char* dst);
+u32 get_cols(Canvas* c, u32* cols, u32 size);
+u32 get_cols_histogram(Canvas* c, ColourHistogramBar* bar, u32 size);
 #endif

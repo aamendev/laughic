@@ -1,4 +1,6 @@
 #include "./graphics_util.h"
+#include "core/tree.h"
+#include "logic_util.h"
 
 
 void signed_unpack(i16* comp, i64* c)
@@ -388,4 +390,63 @@ int save_to_img(Canvas* canvas, Format format, char* dst)
         default:
             return -1;
     }
+}
+
+u32 get_cols(Canvas* c, u32* cols, u32 size)
+{
+    int count = 0;
+    for (int i = 0; i < c->width * c->height && (count < size); i++)
+    {
+        int j;
+        for (j = 0; j < count; j++)
+        {
+            if (cols[j] == c->pixels[i])
+            {
+                break;
+            }
+        }
+        cols[j] = cols[j] * (j < count) + c->pixels[i] * (j == count);
+        count += (j == count);
+    }
+    return count;
+}
+
+u32 get_cols_histogram(Canvas* c, ColourHistogramBar* bar, u32 size)
+{
+    int count = 0;
+    for (int i = 0; i < c->width * c->height * 10 / 100 && (count < size); i++)
+    {
+        int idx = rand_int_bound(0, c->width * c->height);
+        int j;
+        for (j = 0; j < count; j++)
+        {
+            if (bar[j].col == c->pixels[idx])
+            {
+                bar[j].count++;
+                break;
+            }
+        }
+        if (j == count)
+        {
+            bar[j] = (ColourHistogramBar){.col = c->pixels[idx], .count = 1};
+            count++;
+        }
+    }
+    return count;
+}
+
+f32 colour_distance(u32 col1, u32 col2)
+{
+    return (get_channel(&col1, ChannelRed) - 
+     get_channel(&col2, ChannelRed)) *
+    (get_channel(&col1, ChannelRed) - 
+     get_channel(&col2, ChannelRed)) +
+    (get_channel(&col1, ChannelBlue) - 
+     get_channel(&col2, ChannelBlue)) *
+    (get_channel(&col1, ChannelBlue) - 
+     get_channel(&col2, ChannelBlue)) +
+    (get_channel(&col1, ChannelGreen) - 
+     get_channel(&col2, ChannelGreen)) *
+    (get_channel(&col1, ChannelGreen) - 
+     get_channel(&col2, ChannelGreen));
 }

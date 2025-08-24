@@ -85,3 +85,16 @@ void inplace_max(u32* a, u32 b)
     *a = *a * (*a > b) + b * !(*a > b);
 }
 
+i32 u32_comp(void* v1, void* v2)
+{
+    u32 u1 = *((u32*)v1);
+    u32 u2 = *((u32*)v2);
+    return (u1 > u2) - (u1 < u2);
+}
+i32 i32_comp(void* v1, void* v2)
+{
+    i32 i1 = *((i32*)v1);
+    i32 i2 = *((i32*)v2);
+    return (i1 > i2) - (i1 < i2);
+}
+

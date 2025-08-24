@@ -1,8 +1,10 @@
 #ifndef PROCESSING_H
 #define PROCESSING_H
 #include "../graphics_util.h"
+#include "processing_utils.h"
 #include "../colours.h"
 #include "../shapes.h"
+#include <float.h>
 
 // Modifiers
 void translate(Canvas* c, i32 valx, i32 valy);
@@ -17,6 +19,15 @@ void clamp_all(Canvas*, u8 t0, u8 t1);
 void grey_scale(Canvas*);
 void weighted_subtract_img(Canvas* c1, u32* c2, float weight);
 void weighted_add_img(Canvas* c1, u32* c2, float weight);
+
+void populisity_quantize_colours(Canvas* c, u32 new_count, u32 expected_old_count);
+
+//void median_cut_quantize_colours(Canvas* c, u32 new_count, u32 expected_old_count);
+// median_cut_quantize_colours_helpers
+ColourBox createColourBox(ColourHistogramBar* bars, u32 bars_count, u32 level);
+ColourBox* find_box_to_split(ColourBox* root);
+void split_box(ColourBox* root, ColourBox* to_split);
+void sort_bars(ColourHistogramBar* bars, u32 bars_count);
 
 // TODO: Histogram Methods
 //void generate_histograms(Canvas* c);

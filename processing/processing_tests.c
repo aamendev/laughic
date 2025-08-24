@@ -5,8 +5,9 @@
 #define KER_RAD (5)
 void processing_all_tests(Canvas *c)
 {
-    p_hatching_test(c);
-    p_morpho_tests(c);
+//    p_hatching_test(c);
+ //   p_morpho_tests(c);
+ p_quantize_tests(c);
 }
 
 void p_hatching_test(Canvas* c)
@@ -50,4 +51,11 @@ void p_morpho_tests(Canvas* c)
     read_to_canvas(c, "./assets/levi.jpg");
     erode(c, erode_kernel, KER_RAD);
     save_to_img(c, JPG, "./imgs/filters/erode");
+}
+
+void p_quantize_tests(Canvas* c)
+{
+    read_to_canvas(c, "./assets/levi.jpg");
+    populisity_quantize_colours(c, 30, 1e4);
+    save_to_img(c, JPG, "./imgs/processing/quantized");
 }
