@@ -149,11 +149,6 @@ void sort_bars(ColourHistogramBar* bars, u32 bars_count)
             }
         }
     }
-    for (int i = 0; i < bars_count; i++)
-    {
-        printf("%d\n", bars[i].count);
-    }
-    printf("%d\n", bars_count);
 }
 void split_box(ColourBox* root, ColourBox* to_split)
 {
