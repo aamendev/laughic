@@ -47,38 +47,38 @@ void long_unpack(u32* comp, u64* rg, u64* ba)
 
 void signed_to_unsigned(i64* sgn, u32* un)
 {
-   i16 sgn_comp[4] = {0,0,0,0}; 
-   u8 un_comp[4] = {0, 0, 0 ,0};
-   signed_unpack(sgn_comp, sgn);
-   for (int i = 0; i < 4; i++)
-   {
+    i16 sgn_comp[4] = {0,0,0,0}; 
+    u8 un_comp[4] = {0, 0, 0 ,0};
+    signed_unpack(sgn_comp, sgn);
+    for (int i = 0; i < 4; i++)
+    {
         un_comp[i] = (u8)sgn_comp[i] * (sgn_comp[i] > -1 && sgn_comp[i] < 256)
             + 255 * (sgn_comp[i] > 255); 
-   }
-   *un = 0;
-   pack(un_comp, un);
+    }
+    *un = 0;
+    pack(un_comp, un);
 }
 
 void unsigned_to_signed(i64* sgn, u32* un)
 {
-   i16 sgn_comp[4] = {0,0,0,0}; 
-   u8 un_comp[4] = {0, 0, 0 ,0};
-   unpack(un_comp, un);
-   for (int i = 0; i < 4; i++)
-   {
+    i16 sgn_comp[4] = {0,0,0,0}; 
+    u8 un_comp[4] = {0, 0, 0 ,0};
+    unpack(un_comp, un);
+    for (int i = 0; i < 4; i++)
+    {
         sgn_comp[i] = un_comp[i]; 
         //printf("Old: %x, New: %x\n",un_comp[i], sgn_comp[i]);
-   }
-   *sgn = 0;
-   signed_pack(sgn_comp, sgn);
-   //printf("Old: %x, New: %lx\n",*un, *sgn);
+    }
+    *sgn = 0;
+    signed_pack(sgn_comp, sgn);
+    //printf("Old: %x, New: %lx\n",*un, *sgn);
 }
 void unpack(u8* comp, u32* c)
 {
-        comp[0] = *c&0XFF;
-        comp[1] = (*c>>8) & 0XFF;
-        comp[2] = (*c >> (8 * 2)) & 0xFF;
-        comp[3] = (*c >> (8 * 3)) & 0xFF;
+    comp[0] = *c&0XFF;
+    comp[1] = (*c>>8) & 0XFF;
+    comp[2] = (*c >> (8 * 2)) & 0xFF;
+    comp[3] = (*c >> (8 * 3)) & 0xFF;
 }
 
 void pack(u8* comp, u32* c)
@@ -188,16 +188,16 @@ void julia(Canvas* canvas, u16 iterations, float zx, float zy, u32 base_colour)
             x0 = tempx + zx;
             iter++;
         }
-    u8 comp[4] = {0,0,0,0};
-    float freq[3] = {0.03, 0.018, 0.019};
-    float phase[3] = {0.0, 0.0, 0.0};
-    float continousFactor = iter + 1 - 1 /(zx * zx + zy * zy);
-    base_colour = 0xff000000;
-    for (int i = 0; i < 3; i++)
-    {
-        comp[i] = (0.5 * sin(freq[i] * continousFactor + phase[i] + shift) + 0.5) * 255;
-        base_colour |= (comp[i]<<8*i);
-    }
+        u8 comp[4] = {0,0,0,0};
+        float freq[3] = {0.03, 0.018, 0.019};
+        float phase[3] = {0.0, 0.0, 0.0};
+        float continousFactor = iter + 1 - 1 /(zx * zx + zy * zy);
+        base_colour = 0xff000000;
+        for (int i = 0; i < 3; i++)
+        {
+            comp[i] = (0.5 * sin(freq[i] * continousFactor + phase[i] + shift) + 0.5) * 255;
+            base_colour |= (comp[i]<<8*i);
+        }
         mix_colour(&canvas->pixels[i], base_colour);
     }
 }
@@ -243,7 +243,7 @@ process:
     }
 }
 void newton2(Canvas *canvas, u16 iterations, void (*func)(float, float, float *, float *), void (*deri)(float, float, float *, float *), float* roots, u16 nRoots)
- {
+{
     u32 base_colour = 0xff000000;
     float derix = 0.0f;
     float deriy = 0.0f;
@@ -379,14 +379,14 @@ int save_to_img(Canvas* canvas, Format format, char* dst)
     switch (format)
     {
         case PNG:
-        {
-            return stbi_write_png(dst, canvas->width, canvas->height, 4, canvas->pixels, canvas->width * 4);
-        }
-        break;
+            {
+                return stbi_write_png(dst, canvas->width, canvas->height, 4, canvas->pixels, canvas->width * 4);
+            }
+            break;
         case JPG:
-        {
-            return stbi_write_jpg(dst, canvas->width, canvas->height, 4, canvas->pixels, canvas->width * 4);
-        }
+            {
+                return stbi_write_jpg(dst, canvas->width, canvas->height, 4, canvas->pixels, canvas->width * 4);
+            }
         default:
             return -1;
     }
@@ -414,7 +414,7 @@ u32 get_cols(Canvas* c, u32* cols, u32 size)
 u32 get_cols_histogram(Canvas* c, ColourHistogramBar* bar, u32 size)
 {
     int count = 0;
-    for (int i = 0; i < c->width * c->height * 10 / 100 && (count < size); i++)
+    for (int i = 0; i < c->width * c->height * 10/100 && (count < size); i++)
     {
         int idx = rand_int_bound(0, c->width * c->height);
         int j;
@@ -437,16 +437,17 @@ u32 get_cols_histogram(Canvas* c, ColourHistogramBar* bar, u32 size)
 
 f32 colour_distance(u32 col1, u32 col2)
 {
-    return (get_channel(&col1, ChannelRed) - 
-     get_channel(&col2, ChannelRed)) *
-    (get_channel(&col1, ChannelRed) - 
-     get_channel(&col2, ChannelRed)) +
-    (get_channel(&col1, ChannelBlue) - 
-     get_channel(&col2, ChannelBlue)) *
-    (get_channel(&col1, ChannelBlue) - 
-     get_channel(&col2, ChannelBlue)) +
-    (get_channel(&col1, ChannelGreen) - 
-     get_channel(&col2, ChannelGreen)) *
-    (get_channel(&col1, ChannelGreen) - 
-     get_channel(&col2, ChannelGreen));
+    return 
+        (get_channel(&col1, ChannelRed) - 
+         get_channel(&col2, ChannelRed)) *
+        (get_channel(&col1, ChannelRed) - 
+         get_channel(&col2, ChannelRed)) +
+        (get_channel(&col1, ChannelBlue) - 
+         get_channel(&col2, ChannelBlue)) *
+        (get_channel(&col1, ChannelBlue) - 
+         get_channel(&col2, ChannelBlue)) +
+        (get_channel(&col1, ChannelGreen) - 
+         get_channel(&col2, ChannelGreen)) *
+        (get_channel(&col1, ChannelGreen) - 
+         get_channel(&col2, ChannelGreen));
 }

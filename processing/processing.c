@@ -71,7 +71,7 @@ void median_cut_quantize_colours(Canvas* c, u32 new_count, u32 expected_old_coun
         return;
     }
  
-    sort_bars(cols, old_count);
+    //sort_bars(cols, old_count);
     int box_count = 0;
     ColourBox root = createColourBox(cols, old_count, 0);
     box_count++;
@@ -124,13 +124,13 @@ void median_cut_quantize_colours(Canvas* c, u32 new_count, u32 expected_old_coun
         c->pixels[i] = current_col;
     }
     current = &root;
-    ColourBox* next = current->next;
+    /*ColourBox* next = current->next;
     while (current != NULL)
     {
         next = current->next;
         free(current);
         current = next;
-    }
+    }*/
     free(cols);
     free(new_cols);
 }
@@ -177,6 +177,7 @@ void split_box(ColourBox* root, ColourBox* to_split)
         split_channel = ChannelGreen;
     }
 
+    sort_bars(to_split->cols, to_split->col_count);
     ColourHistogramBar* c1_bar = malloc(to_split->col_count * sizeof(ColourHistogramBar));
     ColourHistogramBar* c2_bar = malloc(to_split->col_count * sizeof(ColourHistogramBar));
     

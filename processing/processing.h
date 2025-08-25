@@ -22,7 +22,7 @@ void weighted_add_img(Canvas* c1, u32* c2, float weight);
 
 void populisity_quantize_colours(Canvas* c, u32 new_count, u32 expected_old_count);
 
-//void median_cut_quantize_colours(Canvas* c, u32 new_count, u32 expected_old_count);
+void median_cut_quantize_colours(Canvas* c, u32 new_count, u32 expected_old_count);
 // median_cut_quantize_colours_helpers
 ColourBox createColourBox(ColourHistogramBar* bars, u32 bars_count, u32 level);
 ColourBox* find_box_to_split(ColourBox* root);

@@ -55,8 +55,19 @@ void p_morpho_tests(Canvas* c)
 
 void p_quantize_tests(Canvas* c)
 {
+    /*
     read_to_canvas(c, "./assets/levi.jpg");
     //grey_scale(c);
     populisity_quantize_colours(c, 6, 1e4);
     save_to_img(c, JPG, "./imgs/processing/quantized");
+
+    read_to_canvas(c, "./assets/levi.jpg");
+    median_cut_quantize_colours(c, 6, 1e4);
+    save_to_img(c, JPG, "./imgs/processing/quantized_median");
+    */
+
+    read_to_canvas(c, "./assets/hunter_chibi");
+    //median_cut_quantize_colours(c, 200, 1e4);
+    populisity_quantize_colours(c, 200, 1e4);
+    save_to_img(c, JPG, "./imgs/processing/quantized_median_2");
 }
