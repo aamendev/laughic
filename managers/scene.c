@@ -181,10 +181,11 @@ void optimized_perspective_tracer(SceneData* scene, MaterialData* material)
     free(bvh);
 }
 
-static u32 ray_march(Traceable** traceables, u32 traceable_count, Ray* ray)
+static u32 ray_march(Traceable** traceables, u32 traceable_count, Ray* ray, Vector3d* normal,
+        Vector3d* point)
 {
-    float min_dist = 0.01f;
-    u32 max_iter = 100;
+    float min_dist = 0.001f;
+    u32 max_iter = 10000;
     Ray* new_ray = malloc(sizeof(Ray));
     new_ray->base = ray->base;
     new_ray->direction = ray->direction;
@@ -209,9 +210,134 @@ static u32 ray_march(Traceable** traceables, u32 traceable_count, Ray* ray)
         new_ray->base = add(&new_ray->base, &move_ray);
         current_iter++;
     }
-    if (current_iter >= max_iter) return traceable_count;
+    /*
+     *   const float eps = 0.0001; // or some other value
+    const vec2 h = vec2(eps,0);
+    return normalize( vec3(f(p+h.xyy) - f(p-h.xyy),
+                           f(p+h.yxy) - f(p-h.yxy),
+                           f(p+h.yyx) - f(p-h.yyx) ) );
+     */
+    if (current_iter >= max_iter || curr_min_idx == traceable_count) 
+    {
+        free(new_ray);
+        normal = NULL;
+        return traceable_count;
+    }
+    if (normal != NULL)
+    {
+    f32 eps = 0.001f;
+    Vector3d hx = {eps, 0, 0};
+    Vector3d hy = {0, eps, 0};
+    Vector3d hz = {0, 0, eps};
+    Vector3d old_base = new_ray->base;
+    Vector3d curr = add(&old_base, &hx);
+    Vector3d curr2 = sub(&old_base, &hx);
+    normal->x  =
+    -(traceables[curr_min_idx]->sdf(traceables[curr_min_idx],
+                &curr) - 
+    traceables[curr_min_idx]->sdf(traceables[curr_min_idx],
+                &curr2));
+    curr = add(&old_base, &hy);
+    curr2 = sub(&old_base, &hy);
+    normal->y  =
+    -(traceables[curr_min_idx]->sdf(traceables[curr_min_idx],
+                &curr) - 
+    traceables[curr_min_idx]->sdf(traceables[curr_min_idx],
+                &curr2));
+    curr = add(&old_base, &hz);
+    curr2 = sub(&old_base, &hz);
+    normal->z  =
+    -(traceables[curr_min_idx]->sdf(traceables[curr_min_idx],
+                &curr) - 
+    traceables[curr_min_idx]->sdf(traceables[curr_min_idx],
+                &curr2));
+
+    *normal = normalise(normal);
+    }
+
+    if (point != NULL)
+    {
+    *point = new_ray->base;
+    }
+
     free(new_ray);
     return curr_min_idx;
+}
+static u32 get_light(Traceable** traceables, 
+        u32 traceable_count,
+        u32 idx, Vector3d* point, Vector3d* normal, Vector3d* cam_dir, MaterialData* material)
+{
+    u32 col = BLACK;
+    u32 ambient_colour = material->ambient_light->get_radiance(NULL, 
+            material->ambient_light->data, 0);
+    u8 ambient_comp[4];
+    unpack(ambient_comp, &ambient_colour);
+    u32 amb = traceables[idx]->ambient.rho(
+            traceables[idx]->ambient.data, NULL);
+    u8 material_amb_comp[4];
+    unpack(material_amb_comp, &amb);
+
+    u32 l_colour;
+    Ray light_ray;
+    f32 light_distance;
+    u8 diffuse_comps[4] = {0, 0, 0, 0xff};
+    u8 specular_comps[4] = {0, 0, 0, 0xff};
+    u8 l_comps[4] = {0, 0, 0, 0xff};
+    u8 c_comps[4] = {0, 0, 0, 0xff};
+    for (int l_index = 0; l_index < material->light_count; l_index++)
+    {
+        l_colour = BLACK;
+        u32 diffuse = BLACK;
+        u32 specular = BLACK;
+        u32 count = 0;
+
+        // todo: cone sample
+        light_ray = material->lights[l_index].get_rays(point, 
+                material->lights[l_index].data, &count)[0];
+        u32 new_idx = ray_march(traceables, traceable_count, &light_ray, NULL, NULL);
+        float ndotw = dot(&light_ray.direction, normal);
+        if (new_idx == idx && ndotw >= 0.00f) 
+        {
+
+        Vector3d temp = sub(point, &light_ray.base);
+        light_distance = magnitude(&temp);
+
+        l_colour =
+            material->lights[l_index].get_radiance(point,
+                    material->lights[l_index].data, light_distance);
+        diffuse = 
+            traceables[idx]->
+            diffuse.f(traceables[idx]->diffuse.data,
+                    cam_dir, &light_ray.direction);
+        GlossySpecularData* sd = 
+            (GlossySpecularData*) 
+            traceables[idx]->specular.data;
+        sd->latest_normal = normal;
+
+        specular = 
+            traceables[idx]->
+            specular.f(traceables[idx]->specular.data,
+                    cam_dir, &light_ray.direction);
+        }
+        unpack(diffuse_comps, &diffuse); 
+        unpack(specular_comps, &specular); 
+        unpack(l_comps, &l_colour);
+        for (int cc = 0; cc < 3; cc++)
+        {
+            float fac = (f32)l_comps[cc] / 0xff * 
+                ((f32)diffuse_comps[cc] / 0xff 
+                 + (f32)specular_comps[cc] / 0xff) * ndotw;
+            fac += ((f32)ambient_comp[cc] / 0xff) * 
+                (f32)material_amb_comp[cc] / 0xff;
+
+            c_comps[cc] = fmin(0xff, (u16)c_comps[cc] + (u16)(fac * 0xff));
+        }
+
+    }
+    c_comps[3] = 0xff;
+    col = 0;
+    pack(c_comps, &col);
+    return col;
 }
 void simple_marcher(SceneData* scene, MaterialData* material)
 {
@@ -231,6 +357,8 @@ void simple_marcher(SceneData* scene, MaterialData* material)
 
     scene->ray->base = scene->cam->data->eye;
     Point2D pp;
+    Vector3d normal;
+    Vector3d inter_point;
     for (int j = 0; j < scene->canvas->height; j++)
     {
         for (int i = 0; i < scene->canvas->width; i++)
@@ -249,7 +377,8 @@ void simple_marcher(SceneData* scene, MaterialData* material)
 
                 scene->ray->direction =
                     scene->cam->ray_direction(scene->cam->data, &pp);
-                currMin = ray_march(scene->traceables, scene->traceable_count, scene->ray);
+                currMin = ray_march(scene->traceables, scene->traceable_count, scene->ray, &normal,
+                        &inter_point);
 
                 //    means[currMin]++; 
             }
@@ -262,7 +391,15 @@ void simple_marcher(SceneData* scene, MaterialData* material)
               means[scene->traceable_count] = 1 - sum;
               */
             //u32 col = weighted_sum(&cols[0], &means[0], scene->traceable_count + 1);
-            u32 col = cols[currMin];
+            u32 col = BLACK;
+            if (currMin != scene->traceable_count)
+            {
+                col = get_light(
+                        scene->traceables,
+                        scene->traceable_count,
+                        currMin, &inter_point, &normal, &scene->ray->direction, 
+                        material);
+            }
             fill_rect(scene->canvas, i, j, scene->pixelSize, scene->pixelSize, col);
         }
     }
