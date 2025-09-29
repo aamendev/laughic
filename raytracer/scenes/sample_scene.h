@@ -18,4 +18,5 @@
 #include "../../colours.h"
 void rect_scene(Canvas* canvas);
 void test_scene(Canvas*);
+void march_test_scene(Canvas* );
 #endif

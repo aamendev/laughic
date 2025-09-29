@@ -209,11 +209,19 @@ void fractal_showcase(Canvas* canvas)
     free(fractalTexture.data);
 }
 
+
 void raytrace(Canvas* canvas)
 {
     rect_scene(canvas);
     //test_scene(canvas);
     save_to_img(canvas, JPG, "./imgs/raytracer/new_light");
+}
+
+void raymarch(Canvas* canvas)
+{
+    march_test_scene(canvas);
+    //test_scene(canvas);
+    save_to_img(canvas, JPG, "./imgs/raytracer/simple_marcher");
 }
 
 
@@ -827,7 +835,8 @@ int main()
     //filters_showcase(&canvas);
     //raytrace(&canvas);
     //intensity_ramp(&canvas);
-    npr_processing(&canvas);
+    //npr_processing(&canvas);
+    raymarch(&canvas);
     //curve_exp(&canvas);
     //npr_path_style_sample(&canvas);
   //  bounded(&canvas);

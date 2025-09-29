@@ -66,6 +66,7 @@ void simple_tracer(SceneData* scene, MaterialData* material)
     free(means);
 }
 
+
 void perspective_tracer(SceneData *scene, MaterialData* material)
 {
     switch(scene->optimized)
@@ -180,6 +181,94 @@ void optimized_perspective_tracer(SceneData* scene, MaterialData* material)
     free(bvh);
 }
 
+static u32 ray_march(Traceable** traceables, u32 traceable_count, Ray* ray)
+{
+    float min_dist = 0.01f;
+    u32 max_iter = 100;
+    Ray* new_ray = malloc(sizeof(Ray));
+    new_ray->base = ray->base;
+    new_ray->direction = ray->direction;
+
+    int curr_min_idx = traceable_count;
+    float curr_min_inter = FLT_MAX;
+    f32 last_step = FLT_MAX;
+    u32 current_iter = 0;
+    Vector3d move_ray;
+    while (last_step > min_dist && current_iter < max_iter)
+    {
+        curr_min_idx = traceable_count;
+        curr_min_inter = FLT_MAX;
+        for (int i = 0; i < traceable_count; i++)
+        {
+            float t = traceables[i]->sdf(traceables[i], &new_ray->base);
+            curr_min_idx = i * (t < curr_min_inter) + curr_min_idx * !(t < curr_min_inter);
+            curr_min_inter = t * (t < curr_min_inter) + curr_min_inter * !(t < curr_min_inter);
+        }
+        last_step = curr_min_inter;
+        move_ray = scale(&new_ray->direction, last_step);
+        new_ray->base = add(&new_ray->base, &move_ray);
+        current_iter++;
+    }
+    if (current_iter >= max_iter) return traceable_count;
+    free(new_ray);
+    return curr_min_idx;
+}
+void simple_marcher(SceneData* scene, MaterialData* material)
+{
+    //scene->sampler->generate_samples(scene->sampler->data);
+ //   float x, y;
+    // float* means = malloc((scene->traceable_count + 1) * sizeof(float));
+    u32* cols = malloc((scene->traceable_count + 1) * sizeof(u32));
+
+    for (int i = 0; i < scene->traceable_count; i++)
+    {
+        cols[i] = scene->traceables[i]->col;
+        scene->traceables[i]->id = i;
+    }
+    cols[scene->traceable_count] = scene->default_colour;
+
+//    int samples = scene->sampler->data->sample_count;
+
+    scene->ray->base = scene->cam->data->eye;
+    Point2D pp;
+    for (int j = 0; j < scene->canvas->height; j++)
+    {
+        for (int i = 0; i < scene->canvas->width; i++)
+        {
+            int currMin = scene->traceable_count;
+            //  for (int k = 0; k < scene->traceable_count; k++) means[k] = 0;
+
+            // for (int k = 0; k < samples * samples; k++)
+
+            {
+               // Point2D next_sample = scene->sampler->get_next(scene->sampler->data);
+                pp.x = scene->pixelSize * 
+                    (i - 0.5 * (scene->canvas->width - 1) + 0.5f);
+                pp.y = scene->pixelSize * 
+                    (j - 0.5 * (scene->canvas->height - 1) + 0.5f);
+
+                scene->ray->direction =
+                    scene->cam->ray_direction(scene->cam->data, &pp);
+                currMin = ray_march(scene->traceables, scene->traceable_count, scene->ray);
+
+                //    means[currMin]++; 
+            }
+            /*float sum = 0;
+              for (int i = 0; i < scene->traceable_count; i++)
+              {
+              means[i] /= (samples * samples);
+              sum += means[i];
+              }
+              means[scene->traceable_count] = 1 - sum;
+              */
+            //u32 col = weighted_sum(&cols[0], &means[0], scene->traceable_count + 1);
+            u32 col = cols[currMin];
+            fill_rect(scene->canvas, i, j, scene->pixelSize, scene->pixelSize, col);
+        }
+    }
+    free(cols);
+    // free(means);
+}
 void unoptimized_perspective_tracer(SceneData* scene, MaterialData* material)
 {
     scene->sampler->generate_samples(scene->sampler->data);

@@ -1,5 +1,6 @@
 #include "aabb.h"
 #include "vector3d.h"
+#include <float.h>
 #include <math.h>
 #include <stdio.h>
 
@@ -72,4 +73,38 @@ void aabb_get_bvh(Traceable* t, struct BVH* bvh)
     bvh->root = t;
     bvh->left = NULL;
     bvh->right = NULL;
+}
+float aabb_sdf(Traceable* t, Vector3d* p)
+{
+    AABB* box = (AABB*)t->data;
+
+    Vector3d mid_box = mid_point(&box->min_coord, &box->max_coord);
+    Vector3d rs = 
+    {
+        box->max_coord.x - mid_box.x,
+        box->max_coord.y - mid_box.y,
+        box->max_coord.z - mid_box.z,
+    };
+    Vector3d temp_p =
+    {
+        fabs(p->x - mid_box.x),
+        fabs(p->y - mid_box.y),
+        fabs(p->z - mid_box.z),
+    };
+    Vector3d diff = 
+    {
+        fmax((temp_p.x - rs.x), 0),
+        fmax((temp_p.y - rs.y), 0),
+        fmax((temp_p.z - rs.z), 0),
+    };
+    float max_comp = 
+        diff.x * (diff.x >= diff.y && diff.x >= diff.z)
+        + diff.y * (diff.y > diff.x && diff.y >= diff.z) 
+        + diff.z * (diff.z > diff.x && diff.z > diff.y);
+        
+    //printf("%f\n", dist);
+    
+    float ret = magnitude(&diff) + fmin(max_comp, 0);
+  //  printf("%f\n", ret);
+    return ret;
 }

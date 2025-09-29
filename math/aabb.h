@@ -11,6 +11,7 @@ typedef struct AABB
     int bounding;
 } AABB;
 float aabb_intersects(Ray* ray, void* data, Vector3d* normal);
+float aabb_sdf(Traceable* t, Vector3d* p);
 void aabb_get_bounding_extents(Traceable* t, Vector3d* min, Vector3d* max);
 void aabb_get_bvh(Traceable* t, struct BVH* bvh);
 
@@ -22,7 +23,8 @@ void aabb_get_bvh(Traceable* t, struct BVH* bvh);
             .intersects = aabb_intersects,\
             .is_mirror = 0,\
             .get_bounding_extents = aabb_get_bounding_extents,\
-            .get_bvh = aabb_get_bvh\
+            .get_bvh = aabb_get_bvh,\
+            .sdf = aabb_sdf\
         }) 
 
 #endif

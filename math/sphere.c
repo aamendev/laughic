@@ -42,6 +42,14 @@ float sphere_intersects(Ray *r, void *data, Vector3d* normal)
     return ret; 
 }
 
+
+float sphere_sdf(Traceable* t, Vector3d* p)
+{
+    Sphere* s = (Sphere*)t->data;
+    Vector3d diff = sub(&(s->center), p);
+    float temp = magnitude(&diff);
+    return temp - s->r;
+}
 void sphere_get_bounding_extents(Traceable* t, Vector3d* min, Vector3d* max)
 {
     Sphere* s = (Sphere*)t->data;

@@ -482,3 +482,145 @@ void test_scene(Canvas* canvas)
 
     scene.ray_trace(&scene_data, &mat_data);
 }
+
+void march_test_scene(Canvas* c)
+{
+
+    Vector3d rayDirection = {.x = 0, .y = 0, .z = -1};
+    Vector3d initPosition = {.x = 0, .y = 0, .z = 100};
+    Ray r = {.direction = rayDirection, .base = initPosition};
+
+    //Sphere s = {.center = {.x = 50, .y = -30, .z = 25}, .r = 5.0f};
+    Sphere s = {.center = {-5, -15, 30}, .r = 16.0f};
+    /*
+    LambertainData ball_diffuse_data = 
+    {
+        .kd = 1.0f,
+        .cd = CYAN
+    };
+    BRDF ball_diffuse = LAMBERTAIN_BRDF(&ball_diffuse_data, "ball_diffuse"); 
+
+    LambertainData ball_ambient_data = 
+    {
+        .kd = 0.5f, .cd = CYAN
+    };
+    BRDF ball_ambient = LAMBERTAIN_BRDF(&ball_ambient_data, "ball_ambient"); 
+
+    GlossySpecularData ball_specular_data = 
+    {
+        .ks = 0.7f,
+        .cs = CYAN,
+        .exp = 20,
+    };
+    BRDF ball_specular = GLOSSY_SPECULAR_BRDF(&ball_specular_data, "ball_specular"); 
+    */
+
+    Traceable ballTrace = SPHERE_TRACE(&s, CYAN, "br");
+
+    Vector3d min = {-10, -10, 20}, max = {10, 10, 40};
+    //ballTrace.get_bounding_extents(&ballTrace, &min, &max);
+    AABB bounding = {.min_coord = min, .max_coord = max};
+    Traceable aabtrace = AABB_TRACE(&bounding, RED, "cr");
+    Traceable inter = combine_traceable(&ballTrace, &aabtrace, inter_sdf);
+    Traceable uni = combine_traceable(&ballTrace, &aabtrace, union_sdf);
+    Traceable diff = combine_traceable(&ballTrace, &aabtrace, diff_sdf);
+    uni.col = MAGENTA;
+    inter.col = YELLOW;
+    diff.col = GREEN;
+    /*
+    ballTrace.specular = ball_specular;
+    ballTrace.diffuse = ball_diffuse;
+    ballTrace.ambient = ball_ambient;
+    aabtrace.specular = ball_specular;
+    aabtrace.diffuse = ball_diffuse;
+    aabtrace.ambient = ball_ambient;
+    */
+
+    (void)aabtrace;
+    (void)ballTrace;
+    (void)inter;
+    (void)uni;
+    (void)diff;
+    Traceable* traceables[20] = 
+    {
+       // &ballTrace,
+        //&aabtrace,
+        //&uni,
+        //&inter,
+   //     &aabtrace,
+        &diff,
+    };
+    int trace_count = 1;
+   // (void)ball;
+   /*
+    PointLight pl = 
+    {
+        .colour = WHITE,
+        .ls = 1.0e5f,
+        .pos = {100, -350, 50}
+    };
+
+    AmbientLight amb = 
+    {
+        .colour = WHITE,
+        .ls = 1.0f
+    };
+    Light first_pl = POINT_LIGHT(&pl, "fpl");
+    Light first_amb = AMBIENT_LIGHT(&amb, "famb");
+    Light lights[20] = {first_pl, first_amb};
+    int light_count = 1;
+
+    SamplerData data = (SamplerData){
+        .sample_count = 4,
+        .set_count = 4,
+        .used_count = 0,
+        .init_index = 0,
+        .samples = NULL,
+        .shuffled_indices = NULL
+    };
+    */
+
+    PinholeData p_data = {.d = 100.0};
+
+    CameraData cam_data = (CameraData)
+    {
+        .eye = {30, -20, -10},
+        .look_at = {0, 0, 0},
+        .up = {.x = 0, .y = 1, .z = 0},
+        .extra = &p_data,
+    };
+    Camera pinhole_cam = PINHOLE(cam_data);
+    (void)p_data;
+    (void)pinhole_cam;
+
+    /*
+    Sampler jittered = JITTERED_SAMPLER(data);
+    */
+    SceneData scene_data = {
+        .canvas = c, 
+        .default_colour = BLACK,
+        .sampler = NULL,
+        .pixelSize = 1,
+        .ray = &r,
+        .traceables = &traceables[0], 
+        .traceable_count = trace_count,
+        .cam = &pinhole_cam,
+        .optimized = 0,
+        .max_mirror_depth = 0,
+    };
+    /*
+    MaterialData mat_data = 
+    {
+        .ambient_light = &lights[1],
+        .lights = &lights[0],
+        .light_count = light_count
+    };
+
+    */
+    Scene scene = {
+        .scene_data = &scene_data,
+        .ray_trace = simple_marcher
+    };
+
+    scene.ray_trace(&scene_data, NULL);
+}
