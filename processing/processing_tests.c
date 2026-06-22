@@ -73,7 +73,7 @@ void p_quantize_tests(Canvas* c)
 }
 void p_ascii_test(Canvas *c)
 {
-    read_to_canvas(c, "./assets/hunter_chibi");
+    read_to_canvas(c, "assets/hunter_chibi");
     unsigned char chars[10] = 
     {' ',
         '.',
@@ -85,6 +85,6 @@ void p_ascii_test(Canvas *c)
         '*',
         '#',
         '@'};
-    simulate_acii_edges(c, chars, 10, 5, "./imgs/processing/ascii.txt");
+    simulate_acii_edges(c, chars, 10, 3, "./imgs/processing/ascii.txt");
 }
 

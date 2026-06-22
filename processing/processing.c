@@ -38,7 +38,8 @@ void translate(Canvas* c, i32 valx, i32 valy)
 
 void gaussian_filter(Canvas* s, float sigma)
 {
-    int rad = fmax(1, (int)(sigma + 0.5f) * 3);
+    int rad =  (int)(sigma + 0.5f) * 3;
+    if (rad == 0) return;
     i32* gauss = malloc((2 * rad + 1) * sizeof(u32));
     int scale = 1u<<16;
     for (int i = 0; i < 2*rad + 1; i++)
@@ -92,7 +93,7 @@ void simulate_acii_edges(Canvas* s, unsigned char* chars, u32 char_count, u32 ch
 {
     int brightness_count = 2;
     u32 new_width = s->width/char_pixel_size;
-    u32 new_height = s->height/char_pixel_size;
+    u32 new_height = s->height/(2*char_pixel_size);
     u32* pixels = malloc(sizeof(u32) * new_width * new_height);
     u32* pixels2 = malloc(sizeof(u32) * new_width * new_height);
     i64* edge_pixels = malloc(sizeof(i64) * new_width * new_height);
@@ -120,8 +121,8 @@ void simulate_acii_edges(Canvas* s, unsigned char* chars, u32 char_count, u32 ch
     downscale_canvas(s, &copy_canvas);
 
     grey_scale(&copy_canvas);
-    sharpen(&copy_canvas, 10.);
     mult_contrast(&copy_canvas, 0.95);
+    sharpen(&copy_canvas, 0.15);
 
     for (int i = 0; i < new_height * new_width; i++)
     {
@@ -131,30 +132,20 @@ void simulate_acii_edges(Canvas* s, unsigned char* chars, u32 char_count, u32 ch
         set_channel(&copy_canvas.pixels[i],r, ChannelRed);
         set_channel(&copy_canvas.pixels[i], r,ChannelGreen);
         set_channel(&copy_canvas.pixels[i], r,ChannelBlue);
+        edge_canvas_unsigned.pixels[i] = copy_canvas.pixels[i];
     }
-    diff_of_gaussian(&copy_canvas,1., 5., &edge_canvas);
+    diff_of_gaussian(&edge_canvas_unsigned,1., 8., &edge_canvas);
     sobel_filter_with_grads_signed(&edge_canvas, grads);
     for (int i = 0; i < new_width * new_height; i++)
     {
         signed_to_unsigned(&edge_canvas.pixels[i], &edge_canvas_unsigned.pixels[i]);
     }
-    /*
-    populisity_quantize_colours(
-            &edge_canvas_unsigned,
-            2, 
-            char_count, 
-            NULL);
-            */
-    mult_contrast(&edge_canvas_unsigned, 2.5);
+    
+    u8 max_r = 0;
     for (int i = 0; i < new_height * new_width; i++)
     {
         u8 r = get_channel(&edge_canvas_unsigned.pixels[i], ChannelRed);
-        if (r < 5) r = 0;
-        int idx = ((float)r/255 * (brightness_count) + 0.5);
-        r = idx * (255 / (brightness_count));
-        set_channel(&edge_canvas_unsigned.pixels[i],r, ChannelRed);
-        set_channel(&edge_canvas_unsigned.pixels[i], r,ChannelGreen);
-        set_channel(&edge_canvas_unsigned.pixels[i], r,ChannelBlue);
+        max_r = max_r * (max_r > r) + r * !(max_r > r);
     }
 
     unsigned char line_vals[9] = {
@@ -174,7 +165,7 @@ void simulate_acii_edges(Canvas* s, unsigned char* chars, u32 char_count, u32 ch
             u32 col = edge_canvas_unsigned.pixels[j * new_width + i];
             u8 r = get_channel(&col, ChannelRed);
             u8 r2 = get_channel(&copy_canvas.pixels[j * new_width + i], ChannelRed);
-            if (r > 0)
+            if (r > 0.3 * max_r)
             {
                 int idx = 9 * (0.5f * ((grads[j * new_width + i] + M_PI)) / M_PI);
                 idx = idx * (idx != 9) + 8 * (idx == 9);
@@ -194,15 +185,12 @@ void simulate_acii_edges(Canvas* s, unsigned char* chars, u32 char_count, u32 ch
             {
                 int idx = char_count * (float)r2/255.;
                 idx = idx * (idx != char_count) + (char_count-1) * (idx == char_count);
-             //   fputc(' ', fptr);
                 fputc(chars[idx], fptr);
             }
         }
             fputc('\n', fptr);
     }
     fclose(fptr);
-    save_to_img(&edge_canvas_unsigned, JPG, "imgs/processing/outline");
-    save_to_img(&copy_canvas, JPG, "imgs/processing/fill");
     free(pixels);
 }
 void populisity_quantize_colours(Canvas* c, u32 new_count, u32 expected_old_count, u32* new_cols)
