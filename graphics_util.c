@@ -141,6 +141,7 @@ void downscale_canvas(Canvas* src, Canvas* dst)
 {
     u32 hn = dst->height;
     u32 wn = dst->width;
+    if (hn >= src->height || wn >= src->width) return;
     for (u32 j = 0; j < hn; j++)
     {
         for (u32 i = 0; i < wn; i++)
