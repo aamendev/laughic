@@ -47,8 +47,13 @@ float sphere_sdf(Traceable* t, Vector3d* p)
 {
     Sphere* s = (Sphere*)t->data;
     Vector3d diff = sub(&(s->center), p);
+    Vector3d norm = normalise(&diff);
+    Vector3d scaled = scale(&norm, s->r);
+    scaled = add(&scaled, &s->center);
     float temp = magnitude(&diff);
-    return temp - s->r;
+   // f32 noise_val =  s->r * 0.2f * perPointHybridMultiFractal(scaled, 0.8f, 2.2f, 12, 1.7f);
+   f32 noise_val = 0.0f;
+    return temp - (s->r) + noise_val;
 }
 void sphere_get_bounding_extents(Traceable* t, Vector3d* min, Vector3d* max)
 {

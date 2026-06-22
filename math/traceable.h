@@ -5,6 +5,7 @@
 #include "vector3d.h"
 #include "../colours.h"
 #include "../raytracer/brdf/brdf.h"
+#include "../experiments/noise_texture.h"
 
 typedef struct Traceable
 {

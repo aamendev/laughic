@@ -5,18 +5,21 @@
 
 void signed_unpack(i16* comp, i64* c)
 {
+    u64 uc = (u64)*c;
     for (int i = 0; i < 4; i++)
     {
-        comp[i] = (i16)((*c >> (16 * i)) & 0xFFFF);
+        comp[i] = (i16)((uc >> (16 * i)) & 0xFFFFu);
     }
 }
 
 void signed_pack(i16* comp, i64* c)
 {
+    u64 u = 0;
     for (int i = 0; i < 4; i++)
     {
-        *c |= ((i64)comp[i]<<(16 * i));
+        u |= ((u64)(u16)comp[i]<<(16 * i));
     }
+    *c = u;
 }
 
 void long_pack(u32* comp, u64* rg, u64* ba)
@@ -85,7 +88,7 @@ void pack(u8* comp, u32* c)
 {
     for (int i = 0; i < 4; i++)
     {
-        *c |= comp[i]<<(8 * i);
+        *c |= (u64)comp[i]<<(8 * i);
     }
 }
 
@@ -123,16 +126,48 @@ u32 weighted_sum(u32* cols, float* means, u32 count)
     u32 current = 0;
     u8 comps[4] = {0, 0, 0, 0};
     u8 out[4] = {0, 0 , 0 , 0};
-    float sum = 0;
+    //float sum = 0;
     for (u32 i = 0; i < count; i++)
     {
         unpack(comps, &cols[i]);
         for (int j = 0; j < 4; j++)
             out[j] = fmin(0xff, (u16)out[j] + (comps[j] * means[i]));
-        sum += means[i];
+       // sum += means[i];
     }
     pack(out, &current);
     return current;
+}
+void downscale_canvas(Canvas* src, Canvas* dst)
+{
+    u32 hn = dst->height;
+    u32 wn = dst->width;
+    for (u32 j = 0; j < hn; j++)
+    {
+        for (u32 i = 0; i < wn; i++)
+        {
+            dst->pixels[j * wn + i] = src->pixels[j * (src->height/hn) * src->width + i * (src->width/wn)];
+        }
+    }
+}
+int is_grey(u32 col)
+{
+
+    return get_channel(&col, ChannelRed) ==
+        get_channel(&col, ChannelGreen)
+        &&
+        get_channel(&col, ChannelRed) ==
+        get_channel(&col, ChannelBlue)
+        &&
+        get_channel(&col, ChannelBlue) ==
+        get_channel(&col, ChannelGreen);
+}
+void print_channels(u32 col)
+{
+    printf("%u, %u, %u\n", 
+            get_channel(&col, ChannelRed),
+            get_channel(&col, ChannelGreen),
+            get_channel(&col, ChannelBlue)
+          );
 }
 void resize(Texture* src, u32 wn, u32 hn, u32** dst)
 {

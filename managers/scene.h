@@ -37,6 +37,7 @@ void optimized_perspective_tracer(SceneData* scene, MaterialData*);
 void unoptimized_perspective_tracer(SceneData* scene, MaterialData*);
 void ligh_tracer(SceneData* data, MaterialData* material);
 void simple_marcher(SceneData* data, MaterialData* material);
+void bake_vdm(SceneData* data, MaterialData* material);
 void construct_bvh(SceneData* sc, struct BVH*);
 void combine_bvh(struct BVH*, struct BVH*);
 void check_bvh_intersection(struct BVH*, Ray* ray, u32 trace_count, 

@@ -31,6 +31,13 @@ typedef struct Canvas
    size_t width;
    size_t height;
 } Canvas;
+typedef struct SignedCanvas
+{
+   const char* name;
+   i64* pixels;
+   size_t width;
+   size_t height;
+} SignedCanvas;
 typedef struct ColourHistogramBar
 {
     u32 col;
@@ -62,6 +69,9 @@ void long_pack(u32* comp, u64* rg, u64* ba);
 void mix_colour(u32* c1, u32 c2);
 u32 complement(u32 colour);
 void resize(Texture* src, u32 wn, u32 hn, u32** dst);
+void downscale_canvas(Canvas* src, Canvas* dst);
+void print_channels(u32 col);
+int is_grey(u32 col);
 u32 weighted_sum(u32* cols, float* means, u32 count);
 
 void mandelbrot(Canvas* canvas, u16 iterations, u32 base_colour);

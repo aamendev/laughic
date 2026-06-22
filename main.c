@@ -224,6 +224,13 @@ void raymarch(Canvas* canvas)
     save_to_img(canvas, JPG, "./imgs/raytracer/simple_marcher");
 }
 
+void bake_vdm_test(Canvas* canvas)
+{
+    bake_test(canvas);
+    //test_scene(canvas);
+    save_to_img(canvas, JPG, "./imgs/raytracer/bake_vdm");
+}
+
 
 u32 checkConcave(u32* points, u32 count)
 {
@@ -828,6 +835,7 @@ void bounded(Canvas* c)
 int main()
 {
     srand(time(NULL));
+    init_noise();
     //all_tests();
 
     //new_processing(&canvas);
@@ -836,10 +844,13 @@ int main()
     //raytrace(&canvas);
     //intensity_ramp(&canvas);
     //npr_processing(&canvas);
-    raymarch(&canvas);
+    //raymarch(&canvas);
+    //
+//    bake_vdm_test(&canvas); 
     //curve_exp(&canvas);
     //npr_path_style_sample(&canvas);
   //  bounded(&canvas);
     //npr_curve(&canvas);
     //run_exp(&canvas);
+    p_ascii_test(&canvas);
 }

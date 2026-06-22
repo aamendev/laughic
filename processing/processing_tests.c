@@ -68,6 +68,23 @@ void p_quantize_tests(Canvas* c)
 
     read_to_canvas(c, "./assets/hunter_chibi");
     //median_cut_quantize_colours(c, 200, 1e4);
-    populisity_quantize_colours(c, 200, 1e4);
+    populisity_quantize_colours(c, 200, 1e4, NULL);
     save_to_img(c, JPG, "./imgs/processing/quantized_median_2");
 }
+void p_ascii_test(Canvas *c)
+{
+    read_to_canvas(c, "./assets/hunter_chibi");
+    unsigned char chars[10] = 
+    {' ',
+        '.',
+        ':',
+        ';',
+        'o',
+        '=',
+        '+',
+        '*',
+        '#',
+        '@'};
+    simulate_acii_edges(c, chars, 10, 5, "./imgs/processing/ascii.txt");
+}
+

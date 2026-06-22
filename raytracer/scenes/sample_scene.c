@@ -486,84 +486,36 @@ void test_scene(Canvas* canvas)
 void march_test_scene(Canvas* c)
 {
 
-    Vector3d rayDirection = {.x = 0, .y = 0, .z = -1};
-    Vector3d initPosition = {.x = 0, .y = 0, .z = 100};
-    Ray r = {.direction = rayDirection, .base = initPosition};
-
-    //Sphere s = {.center = {.x = 50, .y = -30, .z = 25}, .r = 5.0f};
-    Sphere s = {.center = {0 ,-5, 25}, .r = 15.0f};
-    
     LambertainData ball_diffuse_data = 
     {
         .kd = 1.0f,
-        .cd = CYAN
+        .cd = BLUE
     };
     BRDF ball_diffuse = LAMBERTAIN_BRDF(&ball_diffuse_data, "ball_diffuse"); 
 
     LambertainData ball_ambient_data = 
     {
-        .kd = 0.5f, .cd = CYAN
+        .kd = 0.0f, .cd = CYAN
     };
     BRDF ball_ambient = LAMBERTAIN_BRDF(&ball_ambient_data, "ball_ambient"); 
 
     GlossySpecularData ball_specular_data = 
     {
-        .ks = 0.7f,
+        .ks = 0.0f,
         .cs = CYAN,
         .exp = 30,
     };
     BRDF ball_specular = GLOSSY_SPECULAR_BRDF(&ball_specular_data, "ball_specular"); 
-    
 
-    Traceable ballTrace = SPHERE_TRACE(&s, CYAN, "br");
+    Vector3d rayDirection = {.x = 0, .y = 0, .z = -1};
+    Vector3d initPosition = {.x = 0, .y = 0, .z = 100};
+    Ray r = {.direction = rayDirection, .base = initPosition};
 
-    Vector3d min = {-20, -5, 5}, max = {20, -5 + 30, 40};
-    //ballTrace.get_bounding_extents(&ballTrace, &min, &max);
-    AABB bounding = {.min_coord = min, .max_coord = max};
-    Traceable aabtrace = AABB_TRACE(&bounding, RED, "cr");
-    Traceable inter = combine_traceable(&ballTrace, &aabtrace, inter_sdf);
-    Traceable uni = combine_traceable(&ballTrace, &aabtrace, union_sdf);
-    Traceable diff = combine_traceable(&ballTrace, &aabtrace, diff_sdf);
-    uni.col = MAGENTA;
-    inter.col = YELLOW;
-    diff.col = GREEN;
-    ballTrace.specular = ball_specular;
-    ballTrace.diffuse = ball_diffuse;
-    ballTrace.ambient = ball_ambient;
-    diff.specular = ball_specular;
-    diff.diffuse = ball_diffuse;
-    diff.ambient = ball_ambient;
-    uni.specular = ball_specular;
-    uni.diffuse = ball_diffuse;
-    uni.ambient = ball_ambient;
-    /*
-    aabtrace.specular = ball_specular;
-    aabtrace.diffuse = ball_diffuse;
-    aabtrace.ambient = ball_ambient;
-    */
-
-    (void)aabtrace;
-    (void)ballTrace;
-    (void)inter;
-    (void)uni;
-    (void)diff;
-    Traceable* traceables[20] = 
-    {
-       // &ballTrace,
-        //&aabtrace,
-        //&uni,
-        //&inter,
-     //   &aabtrace,
-        &diff,
-    };
-    int trace_count = 1;
-   // (void)ball;
-   
     PointLight pl = 
     {
         .colour = WHITE,
-        .ls = 1.0e4f,
-        .pos = {s.center.x, s.center.y - 50, s.center.z - s.r - 20}
+        .ls = 5.0f,
+        .pos = {0, 0, 2.0f}
     };
 
     AmbientLight amb = 
@@ -576,33 +528,103 @@ void march_test_scene(Canvas* c)
     Light lights[20] = {first_pl, first_amb};
     int light_count = 1;
 
-    
+
     SamplerData data = (SamplerData){
         .sample_count = 1,
-        .set_count = 1,
-        .used_count = 0,
-        .init_index = 0,
-        .samples = NULL,
-        .shuffled_indices = NULL
+            .set_count = 1,
+            .used_count = 0,
+            .init_index = 0,
+            .samples = NULL,
+            .shuffled_indices = NULL
+    };
+
+    Sampler jittered = JITTERED_SAMPLER(data);
+
+
+    MaterialData mat_data = 
+    {
+        .ambient_light = &lights[1],
+        .lights = &lights[0],
+        .light_count = light_count
     };
     
+    // SET geometry
 
-    PinholeData p_data = {.d = 100.0};
+    Sphere s = {.center = {0 ,0, 0 + 0.5}, .r = 0.48f};
+    Sphere s2 = {.center = {0.0 ,-0.24, 0.24 + 0.5}, .r = 0.3f};
+    Sphere s3 = {.center = {0.2 ,0, 0.48f + 0.5}, .r = 0.1f};
+    Sphere s4 = {.center = {-0.2 ,0.0, 0.48 + 0.5}, .r = 0.1f};
+
+    Traceable ballTrace = SPHERE_TRACE(&s, BLUE, "br");
+    Traceable ball2Trace = SPHERE_TRACE(&s2, BLUE, "br");
+    Traceable ball3Trace = SPHERE_TRACE(&s3, BLUE, "br");
+    Traceable ball4Trace = SPHERE_TRACE(&s4, BLUE, "br");
+
+    Vector3d min;
+    Vector3d max;
+    ballTrace.get_bounding_extents(&ballTrace, &min, &max);
+    min.z -= 0.48f;
+    max.z -= 0.48f;
+    AABB bounding = {.min_coord = min, .max_coord = max};
+    Traceable aabbTraceable = AABB_TRACE(&bounding, BLUE, "aabb");
+
+     Traceable diff = combine_traceable(&ball2Trace,&ballTrace, diff_sdf);
+     Traceable uni = combine_traceable(&diff,&aabbTraceable, union_sdf);
+    diff.col = BLUE;
+    ballTrace.specular = ball_specular;
+    ballTrace.diffuse = ball_diffuse;
+    ballTrace.ambient = ball_ambient;
+    ball2Trace.specular = ball_specular;
+    ball2Trace.diffuse = ball_diffuse;
+    ball2Trace.ambient = ball_ambient;
+    ball3Trace.specular = ball_specular;
+    ball3Trace.diffuse = ball_diffuse;
+    ball3Trace.ambient = ball_ambient;
+    ball4Trace.specular = ball_specular;
+    ball4Trace.diffuse = ball_diffuse;
+    ball4Trace.ambient = ball_ambient;
+    diff.specular = ball_specular;
+    diff.diffuse = ball_diffuse;
+    diff.ambient = ball_ambient;
+    uni.specular = ball_specular;
+    uni.diffuse = ball_diffuse;
+    uni.ambient = ball_ambient;
+    
+
+    (void)ballTrace;
+    (void)ball2Trace;
+    (void)ball3Trace;
+    (void)ball4Trace;
+    (void)diff;
+    Traceable* traceables[20] = 
+    {
+        &uni,
+    };
+    int trace_count = 1;
+   
+    // END geometry
+    
+
+    PinholeData p_data = {.d = 600};
+    OrthographicData o_data = {.dir = {0,0,-1.0}};
 
     CameraData cam_data = (CameraData)
     {
-        .eye = {0, -20, -20},
-        .look_at = {0, 0, 1},
+        .eye = {0, 0, 2.0f},
+        .look_at = {0, 0, 0},
         .up = {.x = 0, .y = 1, .z = 0},
         .extra = &p_data,
     };
     Camera pinhole_cam = PINHOLE(cam_data);
+    Camera ortho_cam = ORTHO(cam_data);
+
     (void)p_data;
     (void)pinhole_cam;
+    (void)o_data;
+    (void)ortho_cam;
 
     
-    Sampler jittered = JITTERED_SAMPLER(data);
-    
+
     SceneData scene_data = {
         .canvas = c, 
         .default_colour = BLACK,
@@ -616,18 +638,177 @@ void march_test_scene(Canvas* c)
         .max_mirror_depth = 0,
     };
     
+    Scene scene = {
+        .scene_data = &scene_data,
+        .ray_trace = simple_marcher
+    };
+
+    init_fbm(0.8f, 2.2f);
+    scene.ray_trace(&scene_data, &mat_data);
+}
+void bake_test(Canvas* c)
+{
+
+    LambertainData ball_diffuse_data = 
+    {
+        .kd = 1.0f,
+        .cd = BLUE
+    };
+    BRDF ball_diffuse = LAMBERTAIN_BRDF(&ball_diffuse_data, "ball_diffuse"); 
+
+    LambertainData ball_ambient_data = 
+    {
+        .kd = 0.0f, .cd = CYAN
+    };
+    BRDF ball_ambient = LAMBERTAIN_BRDF(&ball_ambient_data, "ball_ambient"); 
+
+    GlossySpecularData ball_specular_data = 
+    {
+        .ks = 0.0f,
+        .cs = CYAN,
+        .exp = 30,
+    };
+    BRDF ball_specular = GLOSSY_SPECULAR_BRDF(&ball_specular_data, "ball_specular"); 
+
+    Vector3d rayDirection = {.x = 0, .y = 0, .z = -1};
+    Vector3d initPosition = {.x = 0, .y = 0, .z = 100};
+    Ray r = {.direction = rayDirection, .base = initPosition};
+
+    PointLight pl = 
+    {
+        .colour = WHITE,
+        .ls = 100.0f,
+        .pos = {0, 0, 2.0f}
+    };
+
+    AmbientLight amb = 
+    {
+        .colour = WHITE,
+        .ls = 0.2f
+    };
+    Light first_pl = POINT_LIGHT(&pl, "fpl");
+    Light first_amb = AMBIENT_LIGHT(&amb, "famb");
+    Light lights[20] = {first_pl, first_amb};
+    int light_count = 1;
+
+
+    SamplerData data = (SamplerData){
+        .sample_count = 1,
+            .set_count = 1,
+            .used_count = 0,
+            .init_index = 0,
+            .samples = NULL,
+            .shuffled_indices = NULL
+    };
+
+    Sampler jittered = JITTERED_SAMPLER(data);
+
+
     MaterialData mat_data = 
     {
         .ambient_light = &lights[1],
         .lights = &lights[0],
         .light_count = light_count
     };
+    
+    // SET geometry
 
+    f32 shift = -0.1f;
+    f32 sr = 0.5f;
+    Sphere s = {.center = {0 ,0, 0 + shift}, .r = sr};
+    Sphere s2 = {.center = {0.0 ,-sr/2, sr/2 + shift}, .r = sr/2};
+    Sphere s3 = {.center = {0.2 ,0, sr + shift}, .r = sr/5};
+    Sphere s4 = {.center = {-0.2 ,0.0, sr + shift}, .r = sr/5};
+
+    Traceable ballTrace = SPHERE_TRACE(&s, BLUE, "br");
+    Traceable ball2Trace = SPHERE_TRACE(&s2, BLUE, "br");
+    Traceable ball3Trace = SPHERE_TRACE(&s3, BLUE, "br");
+    Traceable ball4Trace = SPHERE_TRACE(&s4, BLUE, "br");
+
+    Vector3d min;
+    Vector3d max;
+    ballTrace.get_bounding_extents(&ballTrace, &min, &max);
+    min.z -= sr;
+    max.z -= sr;
+    AABB bounding = {.min_coord = min, .max_coord = max};
+    Traceable aabbTraceable = AABB_TRACE(&bounding, BLUE, "aabb");
+
+     Traceable diff = combine_traceable(&ball2Trace,&ballTrace, diff_sdf);
+     Traceable uni = combine_traceable(&diff,&aabbTraceable, union_sdf);
+    diff.col = BLUE;
+    ballTrace.specular = ball_specular;
+    ballTrace.diffuse = ball_diffuse;
+    ballTrace.ambient = ball_ambient;
+    ball2Trace.specular = ball_specular;
+    ball2Trace.diffuse = ball_diffuse;
+    ball2Trace.ambient = ball_ambient;
+    ball3Trace.specular = ball_specular;
+    ball3Trace.diffuse = ball_diffuse;
+    ball3Trace.ambient = ball_ambient;
+    ball4Trace.specular = ball_specular;
+    ball4Trace.diffuse = ball_diffuse;
+    ball4Trace.ambient = ball_ambient;
+    diff.specular = ball_specular;
+    diff.diffuse = ball_diffuse;
+    diff.ambient = ball_ambient;
+    uni.specular = ball_specular;
+    uni.diffuse = ball_diffuse;
+    uni.ambient = ball_ambient;
+    
+
+    (void)ballTrace;
+    (void)ball2Trace;
+    (void)ball3Trace;
+    (void)ball4Trace;
+    (void)diff;
+    (void)uni;
+    Traceable* traceables[20] = 
+    {
+        &ballTrace,
+    };
+    int trace_count = 1;
+   
+    // END geometry
+    
+
+    PinholeData p_data = {.d = 600};
+    OrthographicData o_data = {.dir = {0,0,-1.0}};
+
+    CameraData cam_data = (CameraData)
+    {
+        .eye = {0, 0, 1.0f},
+        .look_at = {0, 0, 0},
+        .up = {.x = 0, .y = 1, .z = 0},
+        .extra = &o_data,
+    };
+    Camera pinhole_cam = PINHOLE(cam_data);
+    Camera ortho_cam = ORTHO(cam_data);
+
+    (void)p_data;
+    (void)pinhole_cam;
+    (void)o_data;
+    (void)ortho_cam;
+
+    
+
+    SceneData scene_data = {
+        .canvas = c, 
+        .default_colour = BLACK,
+        .sampler = &jittered,
+        .pixelSize = 1,
+        .ray = &r,
+        .traceables = &traceables[0], 
+        .traceable_count = trace_count,
+        .cam = &ortho_cam,
+        .optimized = 0,
+        .max_mirror_depth = 0,
+    };
     
     Scene scene = {
         .scene_data = &scene_data,
-        .ray_trace = simple_marcher
+        .ray_trace = bake_vdm
     };
 
+    init_fbm(0.8f, 2.2f);
     scene.ray_trace(&scene_data, &mat_data);
 }

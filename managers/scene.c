@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <float.h>
 #include <string.h>
+#include "../math/sphere.h"
 
 void simple_tracer(SceneData* scene, MaterialData* material)
 {
@@ -182,10 +183,10 @@ void optimized_perspective_tracer(SceneData* scene, MaterialData* material)
 }
 
 static u32 ray_march(Traceable** traceables, u32 traceable_count, Ray* ray, Vector3d* normal,
-        Vector3d* point)
+        Vector3d* point, Vector3d* uv)
 {
-    float min_dist = 0.001f;
-    u32 max_iter = 10000;
+    float min_dist = 0.0001f;
+    u32 max_iter = 100000;
     Ray* new_ray = malloc(sizeof(Ray));
     new_ray->base = ray->base;
     new_ray->direction = ray->direction;
@@ -223,9 +224,29 @@ static u32 ray_march(Traceable** traceables, u32 traceable_count, Ray* ray, Vect
         normal = NULL;
         return traceable_count;
     }
+
+#if 1
+    Sphere* sdata = (Sphere*)(traceables[curr_min_idx]->data);
+    float r = sdata->r;
+    Vector3d osinter = sub(&new_ray->base, &(sdata->center));
+    osinter = normalise(&osinter);
+
+        float theta = -atan2(osinter.z,osinter.x);
+        float circle_fac = 0.75f;
+        uv->x = -theta/(2.0f * M_PI * circle_fac) * (theta < 0) + 
+            (1 - theta/(2.0f * M_PI * circle_fac)) * (theta >= 0);
+        float phi = asin(osinter.y/r);
+        uv->y = phi/M_PI + 0.5f;
+        if (uv->y == 0 || uv->y == 1)
+        {
+            uv->x = 0.5f;
+        }
+        uv->z = 0;
+#endif
+
     if (normal != NULL)
     {
-    f32 eps = 0.001f;
+    f32 eps = 0.0001f;
     Vector3d hx = {eps, 0, 0};
     Vector3d hy = {0, eps, 0};
     Vector3d hz = {0, 0, eps};
@@ -294,7 +315,7 @@ static u32 get_light(Traceable** traceables,
         // todo: cone sample
         light_ray = material->lights[l_index].get_rays(point, 
                 material->lights[l_index].data, &count)[0];
-        u32 new_idx = ray_march(traceables, traceable_count, &light_ray, NULL, NULL);
+        u32 new_idx = ray_march(traceables, traceable_count, &light_ray, NULL, NULL, NULL);
         float ndotw = dot(&light_ray.direction, normal);
         if (new_idx == idx && ndotw >= 0.00f) 
         {
@@ -339,11 +360,41 @@ static u32 get_light(Traceable** traceables,
     pack(c_comps, &col);
     return col;
 }
-void simple_marcher(SceneData* scene, MaterialData* material)
+void fix_image(i16* img,  u32 width, u32 height)
 {
-    //scene->sampler->generate_samples(scene->sampler->data);
- //   float x, y;
-    // float* means = malloc((scene->traceable_count + 1) * sizeof(float));
+    /*
+    int x_grad = 0;
+    int correction_mode = 0;
+
+    i16* new_img;
+    for (int j = 0; j < height; j++)
+    {
+        i16 prev = img[j * width];
+        i16 curr_max = prev;
+        for (int i = 1; i < width; i++)
+        {
+            i16 curr = img[i];
+            x_grad = (curr > prev) - (curr < prev);
+            correction_mode = (x_grad < 0) || (curr < curr_max);
+            curr_max = curr_max * (curr < curr_max) + curr * !(curr < curr_max);
+            if (correction_mode)
+            {
+               new_img[j * width + i] = curr - curr_max;
+            }
+            else 
+            {
+                new_img[j * width + i] = 0;
+            }
+        }
+    }
+    */
+}
+void bake_vdm(SceneData* scene, MaterialData* material)
+{
+
+    fill(scene->canvas, scene->default_colour);
+    scene->sampler->generate_samples(scene->sampler->data);
+     float* means = malloc((scene->traceable_count + 1) * sizeof(float));
     u32* cols = malloc((scene->traceable_count + 1) * sizeof(u32));
 
     for (int i = 0; i < scene->traceable_count; i++)
@@ -353,7 +404,87 @@ void simple_marcher(SceneData* scene, MaterialData* material)
     }
     cols[scene->traceable_count] = scene->default_colour;
 
-//    int samples = scene->sampler->data->sample_count;
+    int samples = scene->sampler->data->sample_count;
+
+    scene->ray->base = scene->cam->data->eye;
+    Point2D pp;
+    Vector3d normal;
+    Vector3d inter_point;
+    Vector3d uv;
+   // f32 furthest = 1.0f;
+    for (int j = 0; j < scene->canvas->height; j++)
+    {
+        for (int i = 0; i < scene->canvas->width; i++)
+        {
+            int currMin = scene->traceable_count;
+              for (int k = 0; k < scene->traceable_count; k++) means[k] = 0;
+
+             for (int k = 0; k < samples * samples; k++)
+            {
+                Point2D next_sample = scene->sampler->get_next(scene->sampler->data);
+                pp.x = scene->pixelSize * 
+                    (i - 0.5 * (scene->canvas->width - 1) + next_sample.x);
+                pp.y = scene->pixelSize * 
+                    (j - 0.5 * (scene->canvas->height - 1) + next_sample.y);
+
+                scene->ray->direction =
+                    scene->cam->ray_direction(scene->cam->data, &pp);
+                scene->ray->direction = (Vector3d){0,0,-1};
+                scene->ray->base = (Vector3d)
+                {
+                    pp.x/(scene->canvas->width-1),
+                     pp.y/(scene->canvas->height-1),
+                      scene->cam->data->eye.z
+                };
+                
+                currMin = ray_march(scene->traceables, scene->traceable_count, scene->ray, &normal,
+                        &inter_point, &uv);
+
+                    means[currMin]++; 
+                    if (currMin != scene->traceable_count)
+                    {
+                        u8 comps[4]; 
+                        unpack(comps, &scene->canvas->pixels[j * scene->canvas->width + i]);
+                        Vector3d d = sub(&inter_point, &uv);
+                        //float dd = magnitude(&d);
+                        comps[0] = fmax(0.0f, d.x) * 0xff;
+                        comps[1] = fmax(0.0f, d.y) * 0xff;
+                        comps[2] = fmax(0.0f, d.z) * 0xff;
+                        cols[currMin] = 0;
+                        pack(comps, &cols[currMin]);
+                    }
+            }
+            float sum = 0;
+              for (int i = 0; i < scene->traceable_count; i++)
+              {
+                  means[i] /= (samples * samples);
+                  sum += means[i];
+              }
+              means[scene->traceable_count] = 1 - sum;
+              
+            u32 col = weighted_sum(&cols[0], &means[0], scene->traceable_count + 1);
+            //u32 col = BLACK;
+            mix_colour(&(scene->canvas->pixels[j * scene->canvas->width + i]), col);
+        }
+    }
+    free(cols);
+    // free(means);
+}
+void simple_marcher(SceneData* scene, MaterialData* material)
+{
+    scene->sampler->generate_samples(scene->sampler->data);
+ //   float x, y;
+     float* means = malloc((scene->traceable_count + 1) * sizeof(float));
+    u32* cols = malloc((scene->traceable_count + 1) * sizeof(u32));
+
+    for (int i = 0; i < scene->traceable_count; i++)
+    {
+        cols[i] = scene->traceables[i]->col;
+        scene->traceables[i]->id = i;
+    }
+    cols[scene->traceable_count] = scene->default_colour;
+
+    int samples = scene->sampler->data->sample_count;
 
     scene->ray->base = scene->cam->data->eye;
     Point2D pp;
@@ -364,42 +495,41 @@ void simple_marcher(SceneData* scene, MaterialData* material)
         for (int i = 0; i < scene->canvas->width; i++)
         {
             int currMin = scene->traceable_count;
-            //  for (int k = 0; k < scene->traceable_count; k++) means[k] = 0;
+              for (int k = 0; k < scene->traceable_count; k++) means[k] = 0;
 
-            // for (int k = 0; k < samples * samples; k++)
-
+             for (int k = 0; k < samples * samples; k++)
             {
-               // Point2D next_sample = scene->sampler->get_next(scene->sampler->data);
+                Point2D next_sample = scene->sampler->get_next(scene->sampler->data);
                 pp.x = scene->pixelSize * 
-                    (i - 0.5 * (scene->canvas->width - 1) + 0.5f);
+                    (i - 0.5 * (scene->canvas->width - 1) + next_sample.x);
                 pp.y = scene->pixelSize * 
-                    (j - 0.5 * (scene->canvas->height - 1) + 0.5f);
+                    (j - 0.5 * (scene->canvas->height - 1) + next_sample.y);
 
                 scene->ray->direction =
                     scene->cam->ray_direction(scene->cam->data, &pp);
                 currMin = ray_march(scene->traceables, scene->traceable_count, scene->ray, &normal,
-                        &inter_point);
+                        &inter_point, NULL);
 
-                //    means[currMin]++; 
+                    means[currMin]++; 
+                    if (currMin != scene->traceable_count)
+                    {
+                        cols[currMin] = get_light(
+                                scene->traceables,
+                                scene->traceable_count,
+                                currMin, &inter_point, &normal, &scene->ray->direction, 
+                                material);
+                    }
             }
-            /*float sum = 0;
+            float sum = 0;
               for (int i = 0; i < scene->traceable_count; i++)
               {
-              means[i] /= (samples * samples);
-              sum += means[i];
+                  means[i] /= (samples * samples);
+                  sum += means[i];
               }
               means[scene->traceable_count] = 1 - sum;
-              */
-            //u32 col = weighted_sum(&cols[0], &means[0], scene->traceable_count + 1);
-            u32 col = BLACK;
-            if (currMin != scene->traceable_count)
-            {
-                col = get_light(
-                        scene->traceables,
-                        scene->traceable_count,
-                        currMin, &inter_point, &normal, &scene->ray->direction, 
-                        material);
-            }
+              
+            u32 col = weighted_sum(&cols[0], &means[0], scene->traceable_count + 1);
+            //u32 col = BLACK;
             fill_rect(scene->canvas, i, j, scene->pixelSize, scene->pixelSize, col);
         }
     }

@@ -1,7 +1,18 @@
 #include "processing.h"
 #include "processing_utils.h"
+#include <math.h>
 #include <limits.h>
+#include <stdio.h>
 
+u32 factorial(u32 v)
+{
+    u32 curr = 1;
+    for (u32 i = 2; i < v; i++)
+    {
+        curr *= i;
+    }
+    return curr * v * (v>0) + !(v>0);
+}
 void translate(Canvas* c, i32 valx, i32 valy)
 {
     u32* copy = malloc(c->width * c->height * sizeof(u32));
@@ -25,7 +36,176 @@ void translate(Canvas* c, i32 valx, i32 valy)
     }
 }
 
-void populisity_quantize_colours(Canvas* c, u32 new_count, u32 expected_old_count)
+void gaussian_filter(Canvas* s, float sigma)
+{
+    int rad = fmax(1, (int)(sigma + 0.5f) * 3);
+    i32* gauss = malloc((2 * rad + 1) * sizeof(u32));
+    int scale = 1u<<16;
+    for (int i = 0; i < 2*rad + 1; i++)
+    {
+        gauss[i] = pow(M_E, -0.5 *  (float)((i - rad) * (i-rad)) / (sigma * sigma)) * scale;
+    }
+    general_linear_separated_filter(s, gauss, 2*rad + 1, gauss, 2*rad + 1);
+    //free(gauss);
+}
+void diff_of_gaussian(Canvas* s, float s1, float s2, SignedCanvas* sc)
+{
+    u32* pixels = malloc(sizeof(u32) * s->width * s->height);
+    for (int i = 0; i < s->width * s->height; i++)
+    {
+        pixels[i] = s->pixels[i];
+    }
+    Canvas copy_canvas = 
+    { s->default_colour, "default",
+        pixels,
+        s->width,
+        s->height
+    };
+    gaussian_filter(s, s1);
+    gaussian_filter(&copy_canvas, s2);
+    i16 comps[4] = {0, 0, 0, 0};
+    for (int i = 0; i < s->width * s->height; i++)
+    {
+        i16 r = 
+            (int)get_channel(&s->pixels[i], ChannelRed)
+            - 
+            (int)get_channel(&pixels[i], ChannelRed);
+        i16 g = 
+            
+            (int)get_channel(&s->pixels[i], ChannelGreen)
+            - 
+            (int)get_channel(&pixels[i], ChannelGreen);
+        i16 b = 
+            (int)get_channel(&s->pixels[i], ChannelBlue)
+            - 
+            (int)get_channel(&pixels[i], ChannelBlue);
+        sc->pixels[i] = 0;
+        comps[0] = r;
+        comps[1] = g;
+        comps[2] = b;
+        comps[3] = 255;
+        signed_pack(comps, &sc->pixels[i]);
+    }
+    free(pixels);
+}
+void simulate_acii_edges(Canvas* s, unsigned char* chars, u32 char_count, u32 char_pixel_size, char* path)
+{
+    int brightness_count = 2;
+    u32 new_width = s->width/char_pixel_size;
+    u32 new_height = s->height/char_pixel_size;
+    u32* pixels = malloc(sizeof(u32) * new_width * new_height);
+    u32* pixels2 = malloc(sizeof(u32) * new_width * new_height);
+    i64* edge_pixels = malloc(sizeof(i64) * new_width * new_height);
+    float* grads = malloc(sizeof(float) * new_width * new_height);
+    Canvas copy_canvas = 
+    { BG, "default",
+        pixels,
+        new_width,
+        new_height
+    };
+    SignedCanvas edge_canvas = 
+    { "default",
+        edge_pixels,
+        new_width,
+        new_height
+    };
+    Canvas edge_canvas_unsigned = 
+    { 
+        BG,
+        "default",
+        pixels2,
+        new_width,
+        new_height
+    };
+    downscale_canvas(s, &copy_canvas);
+
+    grey_scale(&copy_canvas);
+    sharpen(&copy_canvas, 10.);
+    mult_contrast(&copy_canvas, 0.95);
+
+    for (int i = 0; i < new_height * new_width; i++)
+    {
+        u8 r = get_channel(&copy_canvas.pixels[i], ChannelRed);
+        int idx = ((float)r/255 * (char_count) + 0.5);
+        r = idx * (255 / (char_count));
+        set_channel(&copy_canvas.pixels[i],r, ChannelRed);
+        set_channel(&copy_canvas.pixels[i], r,ChannelGreen);
+        set_channel(&copy_canvas.pixels[i], r,ChannelBlue);
+    }
+    diff_of_gaussian(&copy_canvas,1., 5., &edge_canvas);
+    sobel_filter_with_grads_signed(&edge_canvas, grads);
+    for (int i = 0; i < new_width * new_height; i++)
+    {
+        signed_to_unsigned(&edge_canvas.pixels[i], &edge_canvas_unsigned.pixels[i]);
+    }
+    /*
+    populisity_quantize_colours(
+            &edge_canvas_unsigned,
+            2, 
+            char_count, 
+            NULL);
+            */
+    mult_contrast(&edge_canvas_unsigned, 2.5);
+    for (int i = 0; i < new_height * new_width; i++)
+    {
+        u8 r = get_channel(&edge_canvas_unsigned.pixels[i], ChannelRed);
+        if (r < 5) r = 0;
+        int idx = ((float)r/255 * (brightness_count) + 0.5);
+        r = idx * (255 / (brightness_count));
+        set_channel(&edge_canvas_unsigned.pixels[i],r, ChannelRed);
+        set_channel(&edge_canvas_unsigned.pixels[i], r,ChannelGreen);
+        set_channel(&edge_canvas_unsigned.pixels[i], r,ChannelBlue);
+    }
+
+    unsigned char line_vals[9] = {
+        '|', '/',
+        151, '\\', 
+        '|', '/', 
+        151, '\\', 
+        '|'};;
+    FILE* fptr;
+    fptr=  fopen(path, "w");
+    unsigned char c;
+    if (fptr == NULL) return;
+    for (int j = 0; j < new_height; j++)
+    {
+        for (int i = 0; i < new_width; i++)
+        {
+            u32 col = edge_canvas_unsigned.pixels[j * new_width + i];
+            u8 r = get_channel(&col, ChannelRed);
+            u8 r2 = get_channel(&copy_canvas.pixels[j * new_width + i], ChannelRed);
+            if (r > 0)
+            {
+                int idx = 9 * (0.5f * ((grads[j * new_width + i] + M_PI)) / M_PI);
+                idx = idx * (idx != 9) + 8 * (idx == 9);
+                c = line_vals[idx];
+                if (c == 151)
+                {
+                    fputc(0xE2, fptr);
+                    fputc(0x80, fptr);
+                    fputc(0x94, fptr);
+                }
+                else 
+                {
+                    fputc(line_vals[idx], fptr);
+                }
+            }
+            else 
+            {
+                int idx = char_count * (float)r2/255.;
+                idx = idx * (idx != char_count) + (char_count-1) * (idx == char_count);
+             //   fputc(' ', fptr);
+                fputc(chars[idx], fptr);
+            }
+        }
+            fputc('\n', fptr);
+    }
+    fclose(fptr);
+    save_to_img(&edge_canvas_unsigned, JPG, "imgs/processing/outline");
+    save_to_img(&copy_canvas, JPG, "imgs/processing/fill");
+    free(pixels);
+}
+void populisity_quantize_colours(Canvas* c, u32 new_count, u32 expected_old_count, u32* new_cols)
 {
     expected_old_count += fmax((new_count * 2), 100) * (expected_old_count == 0);
     ColourHistogramBar* cols = malloc(expected_old_count * sizeof(ColourHistogramBar));
@@ -35,7 +215,10 @@ void populisity_quantize_colours(Canvas* c, u32 new_count, u32 expected_old_coun
         return;
     }
     sort_bars(cols, old_count);
-    u32* new_cols = malloc(new_count * sizeof(u32));
+    if (new_cols == NULL)
+    {
+        new_cols = malloc(new_count * sizeof(u32));
+    }
     for (int i = 0; i < new_count; i++)
     {
         new_cols[i] = cols[i].col;
@@ -412,7 +595,8 @@ void grey_scale(Canvas *c)
     {
         u8 comps[4];
         unpack(comps, &c->pixels[i]);
-        comps[0] = 0.299f * comps[0] + 0.587 * comps[1] + (0.144 * comps[2]);
+        u16 val = 0.299f * comps[0] + 0.587 * comps[1] + (0.144 * comps[2]);
+        comps[0] = fmin(255, val);
         comps[1] = comps[0];
         comps[2] = comps[0];
         c->pixels[i] = 0;
@@ -598,7 +782,6 @@ void jitter_2d_filter(Canvas* s, u32 s1)
                 luckx -= c1;
                 int add1 =  luckx * (i + luckx > -1 && i+luckx < s->width);
                 int add2 =  lucky * (j + lucky > -1 && j+lucky < s->height);
-                //printf("add1: %d, add2: %d\n", add1, add2);
                 curr_cell = oldCanvas[(j + add2) * (s->width) + i + add1];
                 unpack(comps, &curr_cell);
                 s->pixels[j * (s->width) + i] = 0;
@@ -679,7 +862,7 @@ void general_linear_1d_filter(Canvas* s, i32* h1, u32 s1, FilterDirection fd)
     u32 curr_cell = 0;
     f32 norm1 = 0;
     u8 comps[4];
-    i16 vals[4] = {0, 0, 0, 0};
+    i32 vals[4] = {0, 0, 0, 0};
 
     for (int i = 0; i < s1; i++)
     {
@@ -709,12 +892,11 @@ void general_linear_1d_filter(Canvas* s, i32* h1, u32 s1, FilterDirection fd)
                 unpack(comps, &curr_cell);
                 for (int v = 0; v < 3; v++)
                 {
-                    vals[v] += (h1[c1 +u] * (i16)comps[v]);
+                    vals[v] += (norm1 * (h1[c1 +u] * (i16)comps[v]));
                 }
             }
             for (int v = 0; v < 3; v++)
             {
-                vals[v] *= norm1;
                 comps[v] = vals[v] * (vals[v] > 0);
             }
             s->pixels[j * (s->width) + i] = 0;
@@ -800,22 +982,12 @@ void box_filter(Canvas *s, u32 dim)
 // f = 0.219482
 
 
-u32 factorial(u32 v)
-{
-    u32 curr = 1;
-    for (u32 i = 2; i < v; i++)
-    {
-        curr *= i;
-    }
-    return curr * v * (v>0) + !(v>0);
-}
 void binomial_filter(Canvas* s, u32 rad)
 {
     i32* bin = malloc((2 * rad + 1) * sizeof(u32));
     for (int i = 0; i < 2*rad + 1; i++)
     {
           bin[i] = factorial(2 * rad) / (factorial(i) * factorial(2*rad - i));
-          //printf("%d\n", bin[i]);
     }
     general_linear_separated_filter(s, bin, 2*rad + 1, bin, 2*rad + 1);
     //free(gauss);
@@ -1156,7 +1328,85 @@ void default_floyd_steinberg(Canvas* s)
 void median_filter(Canvas* s, u32 dim)
 {
 }
+void sobel_filter_with_grads_signed(SignedCanvas* s, float* grad_val)
+{
+    i64* pixh = malloc(s->width*s->height * sizeof(i64));
+    i64* pixv = malloc(s->width*s->height * sizeof(i64));
 
+    i16 comps1[4] = {0, 0, 0, 0};
+    i16 comps2[4] = {0, 0, 0, 0};
+    for (int i = 0; i < s->width * s->height; i++)
+    {
+        pixh[i] = s->pixels[i];
+        pixv[i] = s->pixels[i];
+    }
+
+    i32 grad[3] = {-1, 0, 1};
+    i32 blur[3] = {1, 2, 1};
+
+    signed_general_linear_1d_filter(pixh,s->width, s->height, blur, 3, FilterY);
+    signed_general_linear_1d_filter(pixh,s->width, s->height, grad, 3, FilterX);
+    signed_general_linear_1d_filter(pixv,s->width, s->height, blur, 3, FilterX);
+    signed_general_linear_1d_filter(pixv,s->width, s->height, grad, 3, FilterY);
+
+
+    for (int j = 0; j < s->width * s->height; j++)
+    {
+        signed_unpack(comps1, &pixh[j]);
+        signed_unpack(comps2, &pixv[j]);
+        grad_val[j] = atan2(comps2[0], comps1[0]);
+        for (int i = 0; i < 3; i++)
+        {
+            comps1[i] = 
+                sqrt(((f32)comps1[i] * (f32)comps1[i] 
+                            + (f32)comps2[i] * (f32)comps2[i]));
+        }
+        s->pixels[j] = 0;
+        signed_pack(comps1, &s->pixels[j]);
+    }
+}
+void sobel_filter_with_grads(Canvas* s, float* grad_val)
+{
+    i64* pixh = malloc(s->width*s->height * sizeof(i64));
+    i64* pixv = malloc(s->width*s->height * sizeof(i64));
+
+    i16 comps1[4] = {0, 0, 0, 0};
+    i16 comps2[4] = {0, 0, 0, 0};
+    for (int i = 0; i < s->width * s->height; i++)
+    {
+        unsigned_to_signed(&pixh[i], &s->pixels[i]);
+        unsigned_to_signed(&pixv[i], &s->pixels[i]);
+    }
+
+    i32 grad[3] = {-1, 0, 1};
+    i32 blur[3] = {1, 2, 1};
+
+    signed_general_linear_1d_filter(pixh,s->width, s->height, blur, 3, FilterY);
+    signed_general_linear_1d_filter(pixh,s->width, s->height, grad, 3, FilterX);
+    signed_general_linear_1d_filter(pixv,s->width, s->height, blur, 3, FilterX);
+    signed_general_linear_1d_filter(pixv,s->width, s->height, grad, 3, FilterY);
+
+
+    for (int j = 0; j < s->width * s->height; j++)
+    {
+        signed_unpack(comps1, &pixh[j]);
+        signed_unpack(comps2, &pixv[j]);
+        grad_val[j] = atan2(comps2[0], comps1[0]);
+        for (int i = 0; i < 3; i++)
+        {
+            comps1[i] = 
+                sqrt(((f32)comps1[i] * (f32)comps1[i] 
+                            + (f32)comps2[i] * (f32)comps2[i]));
+        }
+        pixh[j] = 0;
+        signed_pack(comps1, &pixh[j]);
+        signed_to_unsigned(&pixh[j], &s->pixels[j]);
+        if (!is_grey(s->pixels[j]))
+        {
+            print_channels(s->pixels[j]);
+        }
+    }
+}
 void sobel_filter(Canvas* s)
 {
     i64* pixh = malloc(s->width*s->height * sizeof(i64));
@@ -1606,3 +1856,5 @@ void erode(Canvas* s, i32* erode_kernel, u32 k_width)
         signed_to_unsigned(&signed_copy[i], &s->pixels[i]);
     }
 }
+
+

@@ -20,7 +20,7 @@ void grey_scale(Canvas*);
 void weighted_subtract_img(Canvas* c1, u32* c2, float weight);
 void weighted_add_img(Canvas* c1, u32* c2, float weight);
 
-void populisity_quantize_colours(Canvas* c, u32 new_count, u32 expected_old_count);
+void populisity_quantize_colours(Canvas* c, u32 new_count, u32 expected_old_count, u32* new_cols);
 
 void median_cut_quantize_colours(Canvas* c, u32 new_count, u32 expected_old_count);
 // median_cut_quantize_colours_helpers
@@ -61,15 +61,20 @@ i64* s, u32 width, u32 height, i32* h1, u32 s1,
 void jitter_1d_filter(Canvas* s, u32 s1, FilterDirection fd);
 void jitter_2d_filter(Canvas* s, u32 s1);
 void box_filter(Canvas* s, u32 dim);
+void gaussian_filter(Canvas* s, float sigma);
 void binomial_filter(Canvas* s, u32 rad);
 void s_binomial_filter(i64* s, u32 w, u32 h , u32 rad);
 void long_binomial_filter(LargeCanvas* s, u32 rad);
-void gaussian_filter(Canvas* s, u32 rad);
+void diff_of_gaussian(Canvas* s, float s1, float s2, SignedCanvas* sc);
 void min_filter(Canvas* s, u32 dim);
 void max_filter(Canvas* s, u32 dim);
 void jitter_filter(Canvas* s, u32 dim);
 void median_filter(Canvas* s, u32 dim);
+void sobel_filter_with_grads(Canvas* s, float* grad);
+void sobel_filter_with_grads_signed(SignedCanvas* s, float* grad_val);
 void sobel_filter(Canvas* s);
+void simulate_acii_edges(Canvas* s, unsigned char* chars, u32 char_count, u32 char_pixel_size, char* path);
+void downscale(Canvas* s, float a);
 void canny_filter(Canvas* s, u8 t_low, u8 t_high);
 
 void sharpen(Canvas* s, float sharpen_factor);
@@ -85,6 +90,7 @@ void canny_trace_contour(u32* maximas, u32* mag,
         u32* contour, u32 w, u32 h, u32 x, u32 y, u8 t_low);
 int check_max_pixel(u32* pixels, int width, int height, int x, int y);
 int check_max_pixel_large(u64* rg, u64* ba, int w, int h, int x, int y);
+
 
 
 // NPR

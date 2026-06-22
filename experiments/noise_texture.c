@@ -21,7 +21,7 @@ static const int  perm[TABSIZE] =  {151, 160, 137, 91, 90, 15, 131, 13, 201, 95,
     205, 93, 222, 114, 67, 29, 24, 72, 243, 141, 128, 195, 78, 66, 215, 61, 156, 180};
 
 #define TABMASK (TABSIZE - 1)
-#define PERM(x) perm[(x) & TABMASK]
+#define PERM(x) perm[(x) & (TABMASK&0xff)]
 #define INDEX(ix, iy, iz) PERM(ix + PERM(iy + PERM(iz)))
 #define RANDMASK 0xffffffff
 #define RANDNBR ((float)(rand() & RANDMASK) / RANDMASK) 
@@ -184,11 +184,11 @@ f32 perPointWarp(Vector3d p, f32 h, f32 lac, f32 octaves, f32 dist)
     Vector3d temp = p;
     Vector3d distortedPoint;
     distortedPoint.x = perPointFbm(temp, h, lac, octaves);
-    //    temp.x += 10.5f;
-    temp.x += 0.0f;
+        temp.x += 10.5f;
+    //temp.x += 0.0f;
     distortedPoint.y = perPointFbm(temp, h, lac, octaves);
-    //temp.y += 10.5f;
-    temp.y += 0.0f;
+    temp.y += 10.5f;
+    //temp.y += 0.0f;
     distortedPoint.z = perPointFbm(temp, h, lac, octaves);
     p.x += dist * distortedPoint.x;
     p.y += dist * distortedPoint.y;
